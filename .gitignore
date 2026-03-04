@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+# *.sqlite3
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Django
+*.log
+local_settings.py
+# db.sqlite3
+# media/
+# staticfiles/  # jika Anda menggunakan collectstatic
+*.pot
+*.pyc
+
+# Environments
+.env
+*.env
+
+# Migrations
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# Coverage reports
+htmlcov/
+.coverage
+.tox/
+.nox/
+.cache/
+
+# MyPy
+.mypy_cache/
+
+# Pytest
+.pytest_cache/
+
+# Docker
+*.pid
+
+# MacOS
+.DS_Store
+
+node_modules/
