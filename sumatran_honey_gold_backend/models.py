@@ -1,10 +1,10 @@
 import os
 import binascii
 from django.db import models
-from django.conf import settings
-from django.contrib.auth.models import AbstractUser
-from django.utils import timezone
 from datetime import timedelta
+from django.conf import settings
+from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
 
