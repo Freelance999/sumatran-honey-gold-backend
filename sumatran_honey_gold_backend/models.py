@@ -70,9 +70,27 @@ class PasswordResetToken(models.Model):
 
     def is_valid(self):
         return (not self.is_used) and timezone.now() <= self.expires_at
+
+class Client(models.Model):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    color = models.CharField(max_length=20, null=True, blank=True)
+    logo = models.ImageField(upload_to='images/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class LiveHarvest(models.Model):
+    client = models.ForeignKey(Client, related_name='live_harvests', on_delete=models.CASCADE)
+    youtube_video_id = models.CharField(max_length=100, null=True, blank=True)
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    status = models.CharField(max_length=20, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
 class HoneyBatch(models.Model):
-    # live = models.ForeignKey(LiveHarvest, on_delete=models.CASCADE)
+    live_harvest = models.ForeignKey(LiveHarvest, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
     quantity = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -82,7 +100,7 @@ class HoneyBatch(models.Model):
         return f"{self.brand} - {self.quantity}"
     
 class HoneyBottle(models.Model):
-    honey_batch = models.ForeignKey(HoneyBatch, on_delete=models.CASCADE)
+    honey_batch = models.ForeignKey(HoneyBatch, related_name='honey_bottles', on_delete=models.CASCADE)
     qr_code = models.CharField(max_length=255, unique=True, null=True, blank=True)
     serial_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
