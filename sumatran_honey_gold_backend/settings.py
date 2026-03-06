@@ -8,13 +8,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 ACCESS_TOKEN_EXPIRY = int(os.getenv('ACCESS_TOKEN_EXPIRY'))
 REFRESH_TOKEN_EXPIRY = int(os.getenv('REFRESH_TOKEN_EXPIRY'))
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 SECRET_KEY = 'django-insecure-rg9*=8_c%!*pjyohj@)7xbyx0xi$ved&#lu0)c)u0pgy#sw(s+'
 
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["http://localhost:8000"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://192.168.1.24:3000",
+    "http://192.168.1.24:8000",
+    "http://localhost:8000",
+    "https://6a74-103-121-180-215.ngrok-free.app",
+    "https://ef9b-103-121-180-215.ngrok-free.app",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -30,6 +38,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -38,13 +47,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'sumatran_honey_gold_backend.middlewares.middlewares.TokenExpiryMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
+    "http://192.168.1.24:8000",
+    "http://192.168.1.24:3000",
+    "https://6a74-103-121-180-215.ngrok-free.app",
+    "https://ef9b-103-121-180-215.ngrok-free.app",
 ]
 
 REST_FRAMEWORK = {
