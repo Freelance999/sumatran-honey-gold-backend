@@ -79,8 +79,9 @@ class Client(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class LiveHarvest(models.Model):
-    client = models.ForeignKey(Client, related_name='live_harvests', on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, related_name='live_harvests', on_delete=models.CASCADE, null=True, blank=True)
     youtube_video_id = models.CharField(max_length=100, null=True, blank=True)
+    youtube_stream_id = models.CharField(max_length=100, null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)

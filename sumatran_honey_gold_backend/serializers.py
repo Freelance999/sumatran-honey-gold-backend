@@ -20,7 +20,7 @@ class LiveHarvestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LiveHarvest
-        fields = ['id', 'client', 'client_id', 'youtube_video_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'client', 'client_id', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'created_at', 'updated_at']
 
 class HoneyBatchSerializer(serializers.ModelSerializer):
 

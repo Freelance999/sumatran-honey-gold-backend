@@ -2,6 +2,7 @@ import time
 import datetime
 import threading
 import subprocess
+from django.utils import timezone
 from googleapiclient.discovery import build
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -9,18 +10,26 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from google.oauth2.credentials import Credentials
 from rest_framework.permissions import IsAuthenticated
+from ..models import LiveHarvest
+from ..services.ffmpeg_service import FFmpegService
+from ..serializers import LiveHarvestSerializer
 from ..middlewares.permissions import IsSuperUser
 from ..middlewares.authentications import BearerTokenAuthentication
-from ..serializers import LiveHarvestSerializer
-from ..models import LiveHarvest
+
+ffmpeg_service = FFmpegService()
 
 class LiveHarvestViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action == "create":
-            return [AllowAny()]
-        return [IsAuthenticated()]
+        if self.action in ["create", "stop_live"]:
+            permission_classes = [AllowAny]
+        elif self.action in []:
+            permission_classes = [IsSuperUser]
+        elif self.action in []:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
     
     def create(self, request):
         try:
@@ -66,59 +75,80 @@ class LiveHarvestViewSet(viewsets.ViewSet):
                 streamId=stream["id"]
             ).execute()
 
-            # live = LiveHarvest.objects.create(
-            #     youtube_video_id=broadcast["id"],
-            #     start_time=start_time,
-            #     latitude=latitude,
-            #     longitude=longitude,
-            #     status="LIVE"
-            # )
-
             stream_key = stream["cdn"]["ingestionInfo"]["streamName"]
             ingestion_address = stream["cdn"]["ingestionInfo"]["ingestionAddress"]
             youtube_rtmp = f"{ingestion_address}/{stream_key}"
 
-            start_ffmpeg_worker(youtube_rtmp)
+            data = {
+                "youtube_video_id": broadcast["id"],
+                "youtube_stream_id": stream["id"],
+                "start_time": timezone.now(),
+                "latitude": latitude,
+                "longitude": longitude,
+                "status": "LIVE"
+            }
+
+            serializer = LiveHarvestSerializer(data=data)
+            if serializer.is_valid():
+                live = serializer.save()
+            else:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Validation failed",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            ffmpeg_service.start_streaming(youtube_rtmp)
 
             return Response({
-                "status": 201,
-                "message": "Live created",
+                "status": status.HTTP_201_CREATED,
+                "message": "Live started on youtube!",
                 "data": {
-                    "video_id": broadcast["id"],
+                    "youtube_stream_id": live.youtube_stream_id,
+                    "youtube_video_id": live.youtube_video_id,
                     "youtube_rtmp": youtube_rtmp
                 }
-            })
+            }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["post"], url_path="stop-live")
+    def stop_live(self, request, pk=None):
+        try:
+            id = request.data.get("id")
 
-def start_ffmpeg_worker(youtube_rtmp):
-    def worker():
-        while True:
-            try:
-                cmd = [
-                    "ffmpeg",
-                    "-i", "rtmp://localhost:1935/liveHarvest",
-                    "-f", "lavfi",
-                    "-i", "anullsrc",
-                    "-c:v", "copy",
-                    "-c:a", "aac",
-                    "-shortest",
-                    "-f", "flv",
-                    youtube_rtmp
-                ]
+            live = LiveHarvest.objects.get(youtube_stream_id=id)
+            ffmpeg_service.stop_streaming()
+            creds = Credentials.from_authorized_user_file("youtube_token.json")
+            youtube = build("youtube", "v3", credentials=creds)
 
-                process = subprocess.Popen(cmd)
-                process.wait()
+            youtube.liveBroadcasts().transition(
+                broadcastStatus="complete",
+                id=live.youtube_video_id,
+                part="status"
+            ).execute()
 
-            except Exception as e:
-                print("FFmpeg error:", e)
+            live.status = "STOPPED"
+            live.end_time = timezone.now()
+            live.save()
 
-            print("Retrying ffmpeg in 3 seconds...")
-            time.sleep(3)
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Live stopped successfully",
+            }, status=status.HTTP_200_OK)
 
-    thread = threading.Thread(target=worker, daemon=True)
-    thread.start()
+        except LiveHarvest.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Live harvest not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
