@@ -3,12 +3,14 @@ from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from sumatran_honey_gold_backend.views.user_view_set import UserViewSet
-from sumatran_honey_gold_backend.views.live_harvest_view_set import LiveHarvestViewSet
+from .views.authentication_view_set import AuthenticationViewSet
+from .views.live_harvest_view_set import LiveHarvestViewSet
+from .views.user_view_set import UserViewSet
 
 router = DefaultRouter()
 
 router.register(r"user", UserViewSet, basename="user")
+router.register(r"authentication", AuthenticationViewSet, basename="authentication")
 router.register(r"live-harvest", LiveHarvestViewSet, basename="live-harvest")
 
 urlpatterns = [
