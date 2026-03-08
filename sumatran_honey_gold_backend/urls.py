@@ -16,6 +16,7 @@ router.register(r"live-harvest", LiveHarvestViewSet, basename="live-harvest")
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/sumatran-honey-gold/v1/', include(router.urls)),
+    path('', include('core.urls')),
 ]
 
 if settings.DEBUG:

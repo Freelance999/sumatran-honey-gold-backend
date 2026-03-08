@@ -1,23 +1,26 @@
+from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
-from ..models import UserToken, RefreshToken
+from ..models import UserToken, RefreshToken, PasswordResetToken
 from ..serializers import UserSerializer
 
 class AuthenticationViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in ["login"]:
+        if self.action in ["login", "reset_password"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
-        elif self.action in []:
+        elif self.action in ["logout"]:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
@@ -73,6 +76,130 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 "data": data,
             }, status=status.HTTP_200_OK)
             
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["post"], url_path="logout")
+    def logout(self, request):
+        try:
+            token = request.auth
+
+            if token and isinstance(token, UserToken):
+                user = token.user
+                token.delete()
+                RefreshToken.objects.filter(user=user).delete()
+                
+                return Response({
+                    "status": status.HTTP_200_OK,
+                    "message": "Logout successfully"
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Token not found"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["post", "put"], url_path="reset-password")
+    def reset_password(self, request):
+        try:
+            User = get_user_model()
+
+            if request.method == "POST":
+                email = request.data.get("email")
+                if not email:
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "email is required"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    user = User.objects.get(email__iexact=email.strip())
+                except User.DoesNotExist:
+                    return Response({
+                        "status": status.HTTP_200_OK,
+                        "message": "If the account exists, a reset link has been sent."
+                    }, status=status.HTTP_200_OK)
+
+                PasswordResetToken.objects.filter(custom_user=user, is_used=False).update(is_used=True)
+                prt = PasswordResetToken.objects.create(custom_user=user)
+
+                frontend_base = "/create-new-password"
+                if frontend_base.startswith("http"):
+                    reset_link = f"{frontend_base}?token={prt.token}"
+                else:
+                    scheme = "https" if request.is_secure() else "http"
+                    host = request.get_host()
+                    reset_link = f"{scheme}://{host}{frontend_base}?token={prt.token}"
+
+                context = {
+                    "user": user,
+                    "reset_link": reset_link,
+                    "expires_at": prt.expires_at,
+                    "app_name": "EMAS MADU SUMATRA",
+                }
+                subject = f"{context['app_name']} - Reset Your Password"
+                from_email = settings.EMAIL_HOST_USER
+                html_body = render_to_string("password-reset-email.html", context)
+                text_body = f"Use this link to set a new password: {reset_link}"
+
+                try:
+                    msg = EmailMultiAlternatives(subject, text_body, from_email, [user.email])
+                    msg.attach_alternative(html_body, "text/html")
+                    msg.send(fail_silently=True)
+                except Exception:
+                    pass
+
+                return Response({
+                    "status": status.HTTP_200_OK,
+                    "message": "If the account exists, a reset link has been sent."
+                }, status=status.HTTP_200_OK)
+
+            token = request.data.get("token")
+            new_password = request.data.get("new_password")
+            if not token or not new_password:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "token and new_password are required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                prt = PasswordResetToken.objects.select_related("custom_user").get(token=token)
+            except PasswordResetToken.DoesNotExist:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Invalid token"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not prt.is_valid():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Token expired or already used"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user = prt.custom_user
+            user.set_password(new_password)
+            user.save()
+
+            prt.is_used = True
+            prt.save()
+
+            UserToken.objects.filter(user=user).delete()
+            RefreshToken.objects.filter(user=user).delete()
+
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Password has been reset successfully"
+            }, status=status.HTTP_200_OK)
+
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
