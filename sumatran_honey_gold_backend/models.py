@@ -22,7 +22,7 @@ class UserToken(models.Model):
         if not self.key:
             self.key = self.generate_key()
         if not self.expires_at:
-            days = getattr(settings, "REFRESH_TOKEN_EXPIRY")
+            days = getattr(settings, "ACCESS_TOKEN_EXPIRY")
             self.expires_at = timezone.now() + timedelta(days=days)
         return super().save(*args, **kwargs)
 

@@ -16,7 +16,7 @@ class AuthenticationViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in ["login", "reset_password"]:
+        if self.action in ["login", "reset_password", "refresh_token"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
@@ -198,6 +198,60 @@ class AuthenticationViewSet(viewsets.ViewSet):
             return Response({
                 "status": status.HTTP_200_OK,
                 "message": "Password has been reset successfully"
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"], url_path="refresh-token")
+    def refresh_token(self, request):
+        try:
+            refresh_key = request.data.get("refresh_token")
+            rotate = request.data.get("rotate", True)
+
+            if not refresh_key:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "refresh_token is required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                refresh_token = RefreshToken.objects.get(key=refresh_key, is_revoked=False)
+            except RefreshToken.DoesNotExist:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Invalid refresh token"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if refresh_token.is_expired():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Refresh token expired"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user = refresh_token.user
+            UserToken.objects.filter(user=user).delete()
+            access = UserToken.objects.create(user=user)
+
+            response_data = {
+                "access_token": access.key,
+            }
+
+            if rotate:
+                refresh_token.is_revoked = True
+                refresh_token.save(update_fields=['is_revoked'])
+                new_refresh_token = RefreshToken.objects.create(user=user)
+                response_data['refresh_token'] = new_refresh_token.key
+            else:
+                response_data['refresh_token'] = refresh_token.key
+
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Token refreshed successfully",
+                "data": response_data
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
