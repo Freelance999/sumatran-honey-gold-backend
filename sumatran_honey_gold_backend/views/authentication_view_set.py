@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils.timezone import now
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -56,6 +57,9 @@ class AuthenticationViewSet(viewsets.ViewSet):
                     "message": "Invalid password"
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            user.last_login = now()
+            user.save(update_fields=['last_login'])
+
             if not user.is_active:
                 return Response({
                     "status": status.HTTP_403_FORBIDDEN,

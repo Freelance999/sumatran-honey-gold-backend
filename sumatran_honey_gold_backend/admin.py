@@ -12,7 +12,7 @@ class LiveHarvestAdmin(admin.ModelAdmin):
     list_display = ('client', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'created_at', 'updated_at')
 
 class HoneyBatchAdmin(admin.ModelAdmin):
-    list_display = ('live_harvest', 'brand', 'quantity', 'created_at', 'updated_at')
+    list_display = ('id', 'live_harvest', 'brand', 'quantity', 'created_at', 'updated_at')
 
 class HoneyBottleAdmin(admin.ModelAdmin):
     list_display = ('honey_batch', 'qr_code', 'serial_number', 'created_at', 'updated_at')

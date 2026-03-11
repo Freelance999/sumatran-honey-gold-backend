@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from .views.authentication_view_set import AuthenticationViewSet
 from .views.live_harvest_view_set import LiveHarvestViewSet
+from .views.honey_bottle_view_set import HoneyBottleViewSet
 from .views.client_view_set import ClientViewSet
 from .views.user_view_set import UserViewSet
 
@@ -14,6 +15,7 @@ router.register(r"user", UserViewSet, basename="user")
 router.register(r"authentication", AuthenticationViewSet, basename="authentication")
 router.register(r"live-harvest", LiveHarvestViewSet, basename="live-harvest")
 router.register(r"client", ClientViewSet, basename="client")
+router.register(r"honey-bottle", HoneyBottleViewSet, basename="honey-bottle")
 
 urlpatterns = [
     path('admin/', admin.site.urls),

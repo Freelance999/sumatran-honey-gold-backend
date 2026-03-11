@@ -29,6 +29,7 @@ class UserViewSet(viewsets.ViewSet):
             password = request.data.get('password')
             first_name = request.data.get('first_name', '')
             is_staff = request.data.get('is_staff', False)
+            is_superuser = request.data.get('is_superuser', False)
 
             name_parts = first_name.strip().split()
             if len(name_parts) > 1:
@@ -61,6 +62,7 @@ class UserViewSet(viewsets.ViewSet):
                 user = serializer.save()
                 user.set_password(password)
                 user.is_staff = is_staff
+                user.is_superuser = is_superuser
                 user.save()
 
                 access = UserToken.objects.create(user=user)

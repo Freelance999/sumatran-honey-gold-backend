@@ -18,11 +18,9 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://192.168.1.24:3000",
-    "http://192.168.1.24:8000",
     "http://localhost:8000",
-    "https://6a74-103-121-180-215.ngrok-free.app",
-    "https://ef9b-103-121-180-215.ngrok-free.app",
+    "https://f1fd-103-121-180-238.ngrok-free.app",
+    "https://8c7e-103-121-180-238.ngrok-free.app",
 ]
 
 INSTALLED_APPS = [
@@ -55,10 +53,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
-    "http://192.168.1.24:8000",
-    "http://192.168.1.24:3000",
-    "https://6a74-103-121-180-215.ngrok-free.app",
-    "https://ef9b-103-121-180-215.ngrok-free.app",
+    "https://f1fd-103-121-180-238.ngrok-free.app",
+    "https://8c7e-103-121-180-238.ngrok-free.app",
 ]
 
 REST_FRAMEWORK = {

@@ -102,7 +102,7 @@ class HoneyBatch(models.Model):
     
 class HoneyBottle(models.Model):
     honey_batch = models.ForeignKey(HoneyBatch, related_name='honey_bottles', on_delete=models.CASCADE)
-    qr_code = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    qr_code = models.ImageField(upload_to='images/', null=True, blank=True)
     serial_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

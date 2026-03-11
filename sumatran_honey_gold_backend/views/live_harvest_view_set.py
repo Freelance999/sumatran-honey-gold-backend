@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..services.ffmpeg_service import FFmpegService
@@ -122,6 +123,11 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             id = request.data.get("id")
 
             live = LiveHarvest.objects.get(youtube_stream_id=id)
+            creds = Credentials.from_authorized_user_file("youtube_token.json")
+            if creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            
+            youtube = build("youtube", "v3", credentials=creds)
             ffmpeg_service.stop_streaming()
             creds = Credentials.from_authorized_user_file("youtube_token.json")
             youtube = build("youtube", "v3", credentials=creds)
