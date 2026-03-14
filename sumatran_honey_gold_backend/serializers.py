@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate
 
 User = get_user_model()
 
@@ -33,3 +33,9 @@ class HoneyBottleSerializer(serializers.ModelSerializer):
     class Meta:
         model = HoneyBottle
         fields = ['id', 'honey_batch', 'honey_batch_id', 'qr_code', 'serial_number', 'created_at', 'updated_at']
+
+class CertificateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Certificate
+        fields = ['id', 'honey_batch', 'honey_batch_id', 'title', 'description', 'file', 'date', 'created_at', 'updated_at']

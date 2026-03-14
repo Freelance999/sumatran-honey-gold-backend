@@ -8,6 +8,7 @@ from .views.live_harvest_view_set import LiveHarvestViewSet
 from .views.honey_bottle_view_set import HoneyBottleViewSet
 from .views.client_view_set import ClientViewSet
 from .views.user_view_set import UserViewSet
+from .views.certificate_view_set import CertificateViewSet
 
 router = DefaultRouter()
 
@@ -16,6 +17,7 @@ router.register(r"authentication", AuthenticationViewSet, basename="authenticati
 router.register(r"live-harvest", LiveHarvestViewSet, basename="live-harvest")
 router.register(r"client", ClientViewSet, basename="client")
 router.register(r"honey-bottle", HoneyBottleViewSet, basename="honey-bottle")
+router.register(r"certificate", CertificateViewSet, basename="certificate")
 
 urlpatterns = [
     path('admin/', admin.site.urls),

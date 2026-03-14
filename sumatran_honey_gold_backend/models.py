@@ -109,3 +109,15 @@ class HoneyBottle(models.Model):
 
     def __str__(self):
         return f"{self.honey_batch} - {self.serial_number}"
+
+class Certificate(models.Model):
+    honey_batch = models.ForeignKey(HoneyBatch, related_name='certificates', on_delete=models.CASCADE)
+    title = models.CharField(max_length=255, null=True, blank=True)
+    description = models.CharField(max_length=255, null=True, blank=True)
+    file = models.FileField(upload_to='files/', null=True, blank=True)
+    date = models.CharField(max_length=50, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.honey_batch} - {self.title}"

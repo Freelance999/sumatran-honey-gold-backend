@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'date_joined')
@@ -17,8 +17,12 @@ class HoneyBatchAdmin(admin.ModelAdmin):
 class HoneyBottleAdmin(admin.ModelAdmin):
     list_display = ('honey_batch', 'qr_code', 'serial_number', 'created_at', 'updated_at')
 
+class CertificateAdmin(admin.ModelAdmin):
+    list_display = ('honey_batch', 'title', 'description', 'file', 'date', 'created_at', 'updated_at')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
 admin.site.register(HoneyBatch, HoneyBatchAdmin)
 admin.site.register(HoneyBottle, HoneyBottleAdmin)
+admin.site.register(Certificate, CertificateAdmin)
