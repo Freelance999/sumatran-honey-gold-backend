@@ -16,7 +16,7 @@ class WeatherViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in ["retrieve", "list"]:
+        if self.action in ["fetch_forecasts", "fetch_weather_station"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
@@ -25,7 +25,8 @@ class WeatherViewSet(viewsets.ViewSet):
 
         return [permission() for permission in permission_classes]
 
-    def list(self, request):
+    @action(detail=False, methods=["post"], url_path="forecasts")
+    def fetch_forecasts(self, request):
         url = f"https://api.weather.com/v3/wx/forecast/daily/5day?geocode={geocode}&format=json&units=m&language=id-ID&apiKey={api_key}"
 
         try:
@@ -55,7 +56,8 @@ class WeatherViewSet(viewsets.ViewSet):
                 "message": str(e),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    def retrieve(self, request, pk=None):
+    @action(detail=False, methods=["post"], url_path="weather-station")
+    def fetch_weather_station(self, request, pk=None):
         url = f"https://api.weather.com/v2/pws/observations/current?stationId={station_id}&format=json&units=m&apiKey={api_key}"
 
         try:
