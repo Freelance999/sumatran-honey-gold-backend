@@ -87,6 +87,9 @@ class LiveHarvest(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     status = models.CharField(max_length=20, null=True, blank=True)
+    weather_temperature = models.FloatField(null=True, blank=True)
+    weather_humidity = models.FloatField(null=True, blank=True)
+    weather_wind_speed = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -121,3 +124,38 @@ class Certificate(models.Model):
 
     def __str__(self):
         return f"{self.honey_batch} - {self.title}"
+    
+class WeatherObservation(models.Model):
+    station_id = models.CharField(max_length=50, null=True, blank=True)
+    temperature = models.FloatField(null=True, blank=True)
+    humidity = models.FloatField(null=True, blank=True)
+    wind_speed = models.FloatField(null=True, blank=True)
+    pressure = models.FloatField(null=True, blank=True)
+    precip_rate = models.FloatField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    observed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["observed_at"]),
+            models.Index(fields=["station_id", "observed_at"]),
+        ]
+
+    def __str__(self):
+        return f"Weather at {self.observed_at} - Temp: {self.temperature}°C"
+
+class WeatherForecast(models.Model):
+    location = models.CharField(max_length=100, null=True, blank=True)
+    forecast_date = models.DateField(null=True, blank=True)
+    max_temperature = models.FloatField(null=True, blank=True)
+    min_temperature = models.FloatField(null=True, blank=True)
+    rain_chance = models.FloatField(null=True, blank=True)
+    narrative = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Forecast for {self.location} on {self.forecast_date}"

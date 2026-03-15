@@ -1,7 +1,4 @@
-import time
 import datetime
-import threading
-import subprocess
 from django.utils import timezone
 from googleapiclient.discovery import build
 from rest_framework import status, viewsets
@@ -12,12 +9,15 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
+from ..services.youtube_client_service import YouTubeClient
+from ..services.weather_service import WeatherService
 from ..services.ffmpeg_service import FFmpegService
 from ..middlewares.permissions import IsSuperUser
 from ..serializers import LiveHarvestSerializer
 from ..models import LiveHarvest
 
 ffmpeg_service = FFmpegService()
+weather_service = WeatherService()
 
 class LiveHarvestViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
@@ -37,8 +37,7 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             latitude = request.data.get("latitude")
             longitude = request.data.get("longitude")
 
-            creds = Credentials.from_authorized_user_file("youtube_token.json")
-            youtube = build("youtube", "v3", credentials=creds)
+            youtube = YouTubeClient.get_client()
             start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
             broadcast = youtube.liveBroadcasts().insert(
@@ -80,13 +79,21 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             ingestion_address = stream["cdn"]["ingestionInfo"]["ingestionAddress"]
             youtube_rtmp = f"{ingestion_address}/{stream_key}"
 
+            weather = weather_service.get_weather(latitude, longitude)
+            weather_temperature = weather["temperature"]
+            weather_humidity = weather["humidity"]
+            weather_wind_speed = weather["wind_speed"]
+
             data = {
                 "youtube_video_id": broadcast["id"],
                 "youtube_stream_id": stream["id"],
                 "start_time": timezone.now(),
                 "latitude": latitude,
                 "longitude": longitude,
-                "status": "LIVE"
+                "status": "LIVE",
+                "weather_temperature": weather_temperature,
+                "weather_humidity": weather_humidity,
+                "weather_wind_speed": weather_wind_speed
             }
 
             serializer = LiveHarvestSerializer(data=data)

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, WeatherForecast
 
 User = get_user_model()
 
@@ -20,7 +20,7 @@ class LiveHarvestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LiveHarvest
-        fields = ['id', 'client', 'client_id', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'client', 'client_id', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'weather_temperature', 'weather_humidity', 'weather_wind_speed', 'created_at', 'updated_at']
 
 class HoneyBatchSerializer(serializers.ModelSerializer):
 
@@ -39,3 +39,15 @@ class CertificateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certificate
         fields = ['id', 'honey_batch', 'honey_batch_id', 'title', 'description', 'file', 'date', 'created_at', 'updated_at']
+
+class WeatherObservationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = WeatherObservation
+        fields = ['id', 'station_id', 'temperature', 'humidity', 'wind_speed', 'pressure', 'precip_rate', 'latitude', 'longitude', 'observed_at', 'created_at', 'updated_at']
+
+class WeatherForecastSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = WeatherForecast
+        fields = ['id', 'location', 'forecast_date', 'max_temperature', 'min_temperature', 'rain_chance', 'narrative', 'created_at', 'updated_at']

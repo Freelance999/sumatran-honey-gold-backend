@@ -10,6 +10,11 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 ACCESS_TOKEN_EXPIRY = int(os.getenv('ACCESS_TOKEN_EXPIRY'))
 REFRESH_TOKEN_EXPIRY = int(os.getenv('REFRESH_TOKEN_EXPIRY'))
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+WUNDERGROUND_API_KEY = os.getenv('WUNDERGROUND_API_KEY')
+STATION_ID = os.getenv('STATION_ID')
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
+LATITUDE = "-6.1941919609576175"
+LONGITUDE = "107.04016213037951"
 
 SECRET_KEY = 'django-insecure-rg9*=8_c%!*pjyohj@)7xbyx0xi$ved&#lu0)c)u0pgy#sw(s+'
 
@@ -19,8 +24,8 @@ ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
-    "https://793f-103-121-180-247.ngrok-free.app",
-    "https://afd1-103-121-180-247.ngrok-free.app",
+    "https://af39-103-121-180-247.ngrok-free.app",
+    "https://d0db-103-121-180-247.ngrok-free.app",
 ]
 
 INSTALLED_APPS = [
@@ -34,6 +39,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'sumatran_honey_gold_backend',
     'corsheaders',
+    'django_crontab',
     'core',
 ]
 
@@ -53,8 +59,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
-    "https://793f-103-121-180-247.ngrok-free.app",
-    "https://afd1-103-121-180-247.ngrok-free.app",
+    "https://af39-103-121-180-247.ngrok-free.app",
+    "https://d0db-103-121-180-247.ngrok-free.app",
 ]
 
 REST_FRAMEWORK = {
@@ -138,6 +144,12 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'sumatran_honey_gold_backend.CustomUser'
+
+CRONJOBS = [
+    # ('*/15 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
+    # Buat Debug (Tiap 1 menit)
+    ('*/1 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
+]
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
