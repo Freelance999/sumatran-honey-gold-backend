@@ -78,8 +78,18 @@ class Client(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+class Block(models.Model):
+    code = models.CharField(max_length=10, unique=True, null=True, blank=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
 class LiveHarvest(models.Model):
     client = models.ForeignKey(Client, related_name='live_harvests', on_delete=models.CASCADE, null=True, blank=True)
+    block = models.ForeignKey(Block, related_name='live_harvests', on_delete=models.SET_NULL, null=True, blank=True)
     youtube_video_id = models.CharField(max_length=100, null=True, blank=True)
     youtube_stream_id = models.CharField(max_length=100, null=True, blank=True)
     start_time = models.DateTimeField(null=True, blank=True)
@@ -95,8 +105,11 @@ class LiveHarvest(models.Model):
     
 class HoneyBatch(models.Model):
     live_harvest = models.ForeignKey(LiveHarvest, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    batch_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     brand = models.CharField(max_length=100, null=True, blank=True)
     quantity = models.IntegerField(null=True, blank=True)
+    weight = models.FloatField(null=True, blank=True)
+    status = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
