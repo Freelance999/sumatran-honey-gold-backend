@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, WeatherForecast, Block
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting
 
 User = get_user_model()
 
@@ -46,14 +46,14 @@ class WeatherObservationSerializer(serializers.ModelSerializer):
         model = WeatherObservation
         fields = ['id', 'station_id', 'temperature', 'humidity', 'wind_speed', 'pressure', 'precip_rate', 'latitude', 'longitude', 'observed_at', 'created_at', 'updated_at']
 
-class WeatherForecastSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = WeatherForecast
-        fields = ['id', 'location', 'forecast_date', 'max_temperature', 'min_temperature', 'rain_chance', 'narrative', 'created_at', 'updated_at']
-
 class BlockSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Block
         fields = ['id', 'code', 'name', 'created_at', 'updated_at']
+
+class SettingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Setting
+        fields = ['id', 'key', 'value', 'created_at', 'updated_at']

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, WeatherForecast, Block
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'date_joined')
@@ -23,11 +23,11 @@ class CertificateAdmin(admin.ModelAdmin):
 class WeatherObservationAdmin(admin.ModelAdmin):
     list_display = ('station_id', 'temperature', 'humidity', 'wind_speed', 'pressure', 'precip_rate', 'latitude', 'longitude', 'observed_at', 'created_at', 'updated_at')
 
-class WeatherForecastAdmin(admin.ModelAdmin):
-    list_display = ('location', 'forecast_date', 'max_temperature', 'min_temperature', 'rain_chance', 'narrative', 'created_at', 'updated_at')
-
 class BlockAdmin(admin.ModelAdmin):
     list_display = ('code', 'name', 'created_at', 'updated_at')
+
+class SettingAdmin(admin.ModelAdmin):
+    list_display = ('key', 'value', 'created_at', 'updated_at')
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
@@ -36,5 +36,5 @@ admin.site.register(HoneyBatch, HoneyBatchAdmin)
 admin.site.register(HoneyBottle, HoneyBottleAdmin)
 admin.site.register(Certificate, CertificateAdmin)
 admin.site.register(WeatherObservation, WeatherObservationAdmin)
-admin.site.register(WeatherForecast, WeatherForecastAdmin)
 admin.site.register(Block, BlockAdmin)
+admin.site.register(Setting, SettingAdmin)

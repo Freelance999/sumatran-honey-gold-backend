@@ -159,16 +159,12 @@ class WeatherObservation(models.Model):
 
     def __str__(self):
         return f"Weather at {self.observed_at} - Temp: {self.temperature}°C"
-
-class WeatherForecast(models.Model):
-    location = models.CharField(max_length=100, null=True, blank=True)
-    forecast_date = models.DateField(null=True, blank=True)
-    max_temperature = models.FloatField(null=True, blank=True)
-    min_temperature = models.FloatField(null=True, blank=True)
-    rain_chance = models.FloatField(null=True, blank=True)
-    narrative = models.TextField(null=True, blank=True)
+    
+class Setting(models.Model):
+    key = models.CharField(max_length=255,unique=True, null=True, blank=True)
+    value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Forecast for {self.location} on {self.forecast_date}"
+        return f"{self.key}"

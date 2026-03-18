@@ -37,6 +37,12 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             latitude = request.data.get("latitude")
             longitude = request.data.get("longitude")
 
+            if LiveHarvest.objects.filter(status="LIVE").exists():
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Masih ada live yang sedang berjalan",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             youtube = YouTubeClient.get_client()
             start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
