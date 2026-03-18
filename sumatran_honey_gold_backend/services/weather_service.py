@@ -59,3 +59,27 @@ class WeatherService:
             "humidity": weather_humidity,
             "wind_speed": weather_wind_speed,
         }
+    
+    @staticmethod
+    def calculate_base_score(weather_data):
+        score = 100
+
+        for w in weather_data:
+            temp = w.temperature
+            humidity = w.humidity
+
+            if temp < 30 or temp > 36:
+                score -= 5
+
+            if humidity > 85:
+                score -= 7
+            elif humidity < 40:
+                score -= 5
+
+            if w.wind_speed > 20:
+                score -= 3
+
+            if w.precip_rate > 5:
+                score -= 4
+
+        return max(score, 0)

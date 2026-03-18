@@ -146,9 +146,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'sumatran_honey_gold_backend.CustomUser'
 
 CRONJOBS = [
-    # ('*/15 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
+    ('*/15 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
     # Buat Debug (Tiap 1 menit)
-    ('*/1 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
+    # ('*/1 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
 ]
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

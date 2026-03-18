@@ -4,7 +4,6 @@ import hmac
 import hashlib
 from django.conf import settings
 
-
 class EncodeDecodeService:
     @staticmethod
     def encode_state(data: dict) -> str:

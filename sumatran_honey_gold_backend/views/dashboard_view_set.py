@@ -1,6 +1,8 @@
+from datetime import timedelta
 from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
+from django.core.cache import cache
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -8,14 +10,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
-from ..models import LiveHarvest, HoneyBatch, HoneyBottle
+from ..models import LiveHarvest, HoneyBatch, HoneyBottle, WeatherObservation
 from ..serializers import LiveHarvestSerializer, BlockSerializer
+from ..services.ai_service import AiService
+from ..services.weather_service import WeatherService
 
 class DashboardViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in []:
+        if self.action in ["fetch_system_alerts"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
@@ -28,6 +32,10 @@ class DashboardViewSet(viewsets.ViewSet):
     def fetch_kpis(self, request):
         try:
             now = timezone.now()
+
+            weather = WeatherObservation.objects.filter(observed_at__gte=now - timedelta(hours=24))
+            base_score = WeatherService.calculate_base_score(weather)
+
             start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             if start_of_month.month == 12:
                 next_month = start_of_month.replace(year=start_of_month.year + 1, month=1)
@@ -48,7 +56,7 @@ class DashboardViewSet(viewsets.ViewSet):
                 "data": {
                     "total_harvest_this_month": total_panen_kg,
                     "bottles_ready_for_sel": botol_siap_jual,
-                    "colony_health": 0,
+                    "colony_health": base_score,
                 }
             }, status=status.HTTP_200_OK)
 
@@ -111,6 +119,101 @@ class DashboardViewSet(viewsets.ViewSet):
                     "production_ledgers": ledgers,
                 }
             }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["post"], url_path="system-alert")
+    def fetch_system_alerts(self, request):
+        try:
+            cache_key = "system_alerts_latest"
+
+            cached = cache.get(cache_key)
+            if cached:
+                return Response({
+                    "status": status.HTTP_200_OK,
+                    "message": "System alerts (cached)",
+                    "data": cached
+                }, status=status.HTTP_200_OK)
+        
+            now = timezone.now()
+            recent_weather = WeatherObservation.objects.filter(
+                observed_at__gte=now - timedelta(hours=24)
+            ).order_by("-observed_at")[:100]
+
+            latest_live = LiveHarvest.objects.order_by("-created_at").first()
+            recent_batches = HoneyBatch.objects.order_by("-created_at")[:20]
+
+            weather_data = [
+                {
+                    "temp": w.temperature,
+                    "humidity": w.humidity,
+                    "wind": w.wind_speed,
+                    "time": w.observed_at.isoformat() if w.observed_at else None
+                }
+                for w in recent_weather
+            ]
+
+            live_data = {
+                "status": latest_live.status if latest_live else None,
+                "temperature": latest_live.weather_temperature if latest_live else None,
+                "humidity": latest_live.weather_humidity if latest_live else None,
+            }
+
+            batch_data = [
+                {
+                    "weight": b.weight,
+                    "status": b.status
+                }
+                for b in recent_batches
+            ]
+
+            # Comment kalau gamau pakai rule
+            rule_alerts = AiService.generate_rule_based_alerts(
+                weather_data, live_data, batch_data
+            )
+
+            use_ai = False
+
+            if len(rule_alerts) < 2:
+                use_ai = True
+            elif any(a["level"] == "critical" for a in rule_alerts):
+                use_ai = True
+
+            final_alerts = rule_alerts
+
+            if use_ai:
+                prompt = AiService.build_prompt(weather_data, live_data, batch_data)
+                ai_alerts = AiService.generate_alerts(prompt)
+
+                final_alerts.extend(ai_alerts)
+
+            final_alerts = final_alerts[:5]
+
+            if not final_alerts:
+                final_alerts = [{
+                    "level": "info",
+                    "title": "Sistem Normal",
+                    "message": "Tidak ditemukan anomali signifikan",
+                    "recommendation": "Lanjutkan monitoring"
+                }]
+            # Comment kalau gamau pakai rule
+
+            # Uncomment kalau gamau pakai rule
+            # prompt = AiService.build_prompt(weather_data, live_data, batch_data)
+            # final_alerts = AiService.generate_alerts(prompt)
+            # Uncomment kalau gamau pakai rule
+            
+            cache.set(cache_key, final_alerts, timeout=3600)
+
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "System alerts generated",
+                "data": final_alerts,
+            })
 
         except Exception as e:
             return Response({
