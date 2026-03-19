@@ -16,12 +16,16 @@ class FFmpegService:
                 try:
                     cmd = [
                         "ffmpeg",
-                        "-i", "rtmp://localhost:1935/liveHarvest",
-                        "-f", "lavfi",
-                        "-i", "anullsrc",
+                        "-i", "rtsp://localhost:8554/liveHarvest",
+                        # "-f", "lavfi",
+                        # "-i", "anullsrc",
                         "-c:v", "copy",
                         "-c:a", "aac",
-                        "-shortest",
+                        "-ar", "44100",
+                        "-b:a", "128k",
+                        "-map", "0:v:0",
+                        "-map", "0:a:0?",
+                        # "-shortest",
                         "-f", "flv",
                         youtube_rtmp
                     ]

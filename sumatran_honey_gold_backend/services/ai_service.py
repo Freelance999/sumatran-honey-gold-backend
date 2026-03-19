@@ -1,10 +1,10 @@
 import re
 import json
-import google.generativeai as genai
+from google import genai
 from django.conf import settings
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash")
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
+MODEL_NAME = "gemini-2.5-flash"
 
 class AiService:
     @staticmethod
@@ -52,10 +52,11 @@ class AiService:
     
     @staticmethod
     def generate_alerts(prompt: str):
-        response = model.generate_content(prompt)        
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
         text = response.text
-
-        print("RAW AI:", text)
 
         try:
             return json.loads(text)

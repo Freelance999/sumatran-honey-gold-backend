@@ -66,7 +66,7 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             stream = youtube.liveStreams().insert(
                 part="snippet,cdn",
                 body={
-                    "snippet": {"title": "Honey Stream"},
+                    "snippet": {"title": "Live Panen"},
                     "cdn": {
                         "resolution": "720p",
                         "frameRate": "30fps",
@@ -132,17 +132,28 @@ class LiveHarvestViewSet(viewsets.ViewSet):
         
     @action(detail=False, methods=["post"], url_path="stop-live")
     def stop_live(self, request, pk=None):
-        try:
-            id = request.data.get("id")
+        id = request.data.get("id")
 
+        try:
             live = LiveHarvest.objects.get(youtube_stream_id=id)
+        except LiveHarvest.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "Live harvest not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        errors = []
+
+        try:
+            ffmpeg_service.stop_streaming()
+        except Exception as e:
+            errors.append(f"FFmpeg stop error: {str(e)}")
+
+        try:
             creds = Credentials.from_authorized_user_file("youtube_token.json")
             if creds.expired and creds.refresh_token:
                 creds.refresh(Request())
-            
-            youtube = build("youtube", "v3", credentials=creds)
-            ffmpeg_service.stop_streaming()
-            creds = Credentials.from_authorized_user_file("youtube_token.json")
+
             youtube = build("youtube", "v3", credentials=creds)
 
             youtube.liveBroadcasts().transition(
@@ -151,23 +162,27 @@ class LiveHarvestViewSet(viewsets.ViewSet):
                 part="status"
             ).execute()
 
+        except Exception as e:
+            errors.append(f"YouTube stop error: {str(e)}")
+
+        try:
             live.status = "STOPPED"
             live.end_time = timezone.now()
             live.save()
-
-            return Response({
-                "status": status.HTTP_200_OK,
-                "message": "Live stopped successfully",
-            }, status=status.HTTP_200_OK)
-
-        except LiveHarvest.DoesNotExist:
-            return Response({
-                "status": status.HTTP_404_NOT_FOUND,
-                "message": "Live harvest not found"
-            }, status=status.HTTP_404_NOT_FOUND)
-
         except Exception as e:
             return Response({
                 "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": str(e)
+                "message": f"Failed to update database: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if errors:
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Live stopped with some issues",
+                "errors": errors
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "status": status.HTTP_200_OK,
+            "message": "Live stopped successfully",
+        }, status=status.HTTP_200_OK)
