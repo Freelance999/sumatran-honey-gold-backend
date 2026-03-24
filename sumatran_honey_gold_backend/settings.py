@@ -5,16 +5,28 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 
 ACCESS_TOKEN_EXPIRY = int(os.getenv('ACCESS_TOKEN_EXPIRY'))
 REFRESH_TOKEN_EXPIRY = int(os.getenv('REFRESH_TOKEN_EXPIRY'))
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+WUNDERGROUND_API_KEY = os.getenv('WUNDERGROUND_API_KEY')
+STATION_ID = os.getenv('STATION_ID')
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
+LATITUDE = "-6.1941919609576175"
+LONGITUDE = "107.04016213037951"
 
 SECRET_KEY = 'django-insecure-rg9*=8_c%!*pjyohj@)7xbyx0xi$ved&#lu0)c)u0pgy#sw(s+'
 
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["http://localhost:8000"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "https://7af3-103-121-180-247.ngrok-free.app",
+    "https://9880-103-121-180-247.ngrok-free.app",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -27,9 +39,12 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'sumatran_honey_gold_backend',
     'corsheaders',
+    'django_crontab',
+    'core',
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -38,13 +53,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'sumatran_honey_gold_backend.middlewares.middlewares.TokenExpiryMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
+    "https://7af3-103-121-180-247.ngrok-free.app",
+    "https://9880-103-121-180-247.ngrok-free.app",
 ]
 
 REST_FRAMEWORK = {
@@ -59,7 +75,7 @@ ROOT_URLCONF = 'sumatran_honey_gold_backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [TEMPLATE_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -111,6 +127,7 @@ USE_I18N = True
 USE_TZ = False
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -127,6 +144,12 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'sumatran_honey_gold_backend.CustomUser'
+
+CRONJOBS = [
+    ('*/15 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
+    # Buat Debug (Tiap 1 menit)
+    # ('*/1 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
+]
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

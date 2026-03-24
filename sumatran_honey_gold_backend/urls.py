@@ -1,22 +1,35 @@
-"""
-URL configuration for sumatran_honey_gold_backend project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
+from django.conf import settings
+from django.urls import path, include
+from django.conf.urls.static import static
+from rest_framework.routers import DefaultRouter
+from .views.authentication_view_set import AuthenticationViewSet
+from .views.live_harvest_view_set import LiveHarvestViewSet
+from .views.honey_bottle_view_set import HoneyBottleViewSet
+from .views.certificate_view_set import CertificateViewSet
+from .views.dashboard_view_set import DashboardViewSet
+from .views.setting_view_set import SettingViewSet
+from .views.weather_view_set import WeatherViewSet
+from .views.client_view_set import ClientViewSet
+from .views.user_view_set import UserViewSet
+
+router = DefaultRouter()
+
+router.register(r"user", UserViewSet, basename="user")
+router.register(r"authentication", AuthenticationViewSet, basename="authentication")
+router.register(r"live-harvest", LiveHarvestViewSet, basename="live-harvest")
+router.register(r"client", ClientViewSet, basename="client")
+router.register(r"honey-bottle", HoneyBottleViewSet, basename="honey-bottle")
+router.register(r"certificate", CertificateViewSet, basename="certificate")
+router.register(r"weather", WeatherViewSet, basename="weather")
+router.register(r"dashboard", DashboardViewSet, basename="dashboard")
+router.register(r"setting", SettingViewSet, basename="setting")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/sumatran-honey-gold/v1/', include(router.urls)),
+    path('', include('core.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -55,3 +55,7 @@ htmlcov/
 .DS_Store
 
 node_modules/
+
+youtube_token.json
+secret_youtube.json
+secret_youtube_real.json
