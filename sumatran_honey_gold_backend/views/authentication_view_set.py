@@ -148,7 +148,7 @@ class AuthenticationViewSet(viewsets.ViewSet):
                     "user": user,
                     "reset_link": reset_link,
                     "expires_at": prt.expires_at,
-                    "app_name": "EMAS MADU SUMATRA",
+                    "app_name": "MADU HABIBIE",
                 }
                 subject = f"{context['app_name']} - Reset Your Password"
                 from_email = settings.EMAIL_HOST_USER
