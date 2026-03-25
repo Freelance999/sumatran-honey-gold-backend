@@ -3,7 +3,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 SCOPES = ["https://www.googleapis.com/auth/youtube"]
 
 flow = InstalledAppFlow.from_client_secrets_file(
-    "secret_youtube_real.json",
+    "secret_youtube.json",
     SCOPES
 )
 
