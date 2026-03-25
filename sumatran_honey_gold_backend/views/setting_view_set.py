@@ -49,7 +49,7 @@ class SettingViewSet(viewsets.ViewSet):
     def create_youtube_token(self, request):
         try:
             flow = Flow.from_client_secrets_file(
-                "secret_youtube_real.json",
+                "secret_youtube.json",
                 scopes=["https://www.googleapis.com/auth/youtube"],
                 redirect_uri="http://localhost:8000/api/youtube/callback/"
             )
@@ -97,7 +97,7 @@ class SettingViewSet(viewsets.ViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             flow = Flow.from_client_secrets_file(
-                "secret_youtube_real.json",
+                "secret_youtube.json",
                 scopes=["https://www.googleapis.com/auth/youtube"],
                 state=state_raw,
                 redirect_uri="http://localhost:8000/api/youtube/callback/"
