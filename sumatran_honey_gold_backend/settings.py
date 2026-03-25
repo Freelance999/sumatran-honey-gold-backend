@@ -29,14 +29,17 @@ CSRF_TRUSTED_ORIGINS = [
     "https://habibie.co.id",
     "http://localhost",
     "http://localhost:8000",
+    "http://localhost:8001",
     "http://localhost:3000",
     "http://127.0.0.1",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
     "http://202.10.46.112",
     "http://202.10.46.112:8000",
+    "http://202.10.46.112:8001",
     "https://202.10.46.112",
     "https://202.10.46.112:8000",
+    "https://202.10.46.112:8001",
 ]
 
 INSTALLED_APPS = [
@@ -75,14 +78,17 @@ CORS_ALLOWED_ORIGINS = [
     "https://habibie.co.id",
     "http://localhost",
     "http://localhost:8000",
+    "http://localhost:8001",
     "http://localhost:3000",
     "http://127.0.0.1",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
     "http://202.10.46.112",
     "http://202.10.46.112:8000",
+    "http://202.10.46.112:8001",
     "https://202.10.46.112",
     "https://202.10.46.112:8000",
+    "https://202.10.46.112:8001",
 ]
 
 REST_FRAMEWORK = {
