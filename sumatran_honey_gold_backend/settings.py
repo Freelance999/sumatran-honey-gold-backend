@@ -23,11 +23,14 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "api.habibie.co.id",
-    "habibie.co.id",
-    "localhost",
-    "127.0.0.1",
-    "202.10.46.112",
+    "http://api.habibie.co.id",
+    "https://api.habibie.co.id",
+    "http://habibie.co.id",
+    "https://habibie.co.id",
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://202.10.46.112",
+    "https://202.10.46.112",
 ]
 
 INSTALLED_APPS = [
@@ -60,11 +63,14 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "api.habibie.co.id",
-    "habibie.co.id",
-    "localhost",
-    "127.0.0.1",
-    "202.10.46.112",
+    "http://api.habibie.co.id",
+    "https://api.habibie.co.id",
+    "http://habibie.co.id",
+    "https://habibie.co.id",
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://202.10.46.112",
+    "https://202.10.46.112",
 ]
 
 REST_FRAMEWORK = {
