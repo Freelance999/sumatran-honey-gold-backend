@@ -15,6 +15,7 @@ STATION_ID = os.getenv('STATION_ID')
 OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
 LATITUDE = "-6.234533387561699"
 LONGITUDE = "106.7039825516585"
+BASE_URL = "https://api.habibie.co.id"
 
 SECRET_KEY = 'django-insecure-rg9*=8_c%!*pjyohj@)7xbyx0xi$ved&#lu0)c)u0pgy#sw(s+'
 
