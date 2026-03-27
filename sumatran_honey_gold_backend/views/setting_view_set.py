@@ -1,4 +1,5 @@
 import json
+from django.conf import settings
 from google_auth_oauthlib.flow import Flow
 from rest_framework import status, viewsets
 from googleapiclient.discovery import build
@@ -51,7 +52,7 @@ class SettingViewSet(viewsets.ViewSet):
             flow = Flow.from_client_secrets_file(
                 "secret_youtube.json",
                 scopes=["https://www.googleapis.com/auth/youtube"],
-                redirect_uri="http://localhost:8000/api/youtube/callback/"
+                redirect_uri=f"{settings.BASE_URL}/api/youtube/callback/"
             )
 
             state = EncodeDecodeService.encode_state({
@@ -100,7 +101,7 @@ class SettingViewSet(viewsets.ViewSet):
                 "secret_youtube.json",
                 scopes=["https://www.googleapis.com/auth/youtube"],
                 state=state_raw,
-                redirect_uri="http://localhost:8000/api/youtube/callback/"
+                redirect_uri=f"{settings.BASE_URL}/api/youtube/callback/"
             )
 
             flow.fetch_token(authorization_response=request.build_absolute_uri())
