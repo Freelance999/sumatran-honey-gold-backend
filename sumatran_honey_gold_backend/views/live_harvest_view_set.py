@@ -54,7 +54,8 @@ class LiveHarvestViewSet(viewsets.ViewSet):
                         "scheduledStartTime": start_time
                     },
                     "status": {
-                        "privacyStatus": "unlisted"
+                        # "privacyStatus": "unlisted"
+                        "privacyStatus": "public"
                     },
                     "contentDetails": {
                         "enableAutoStart": True,

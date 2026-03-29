@@ -182,6 +182,13 @@ CRONJOBS = [
     # ('*/1 * * * *', 'sumatran_honey_gold_backend.cron.store_weather_observation', '>> /tmp/weather_cron.log 2>&1'),
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": "/tmp/django_cache",
+    }
+}
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

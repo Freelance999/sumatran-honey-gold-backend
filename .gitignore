@@ -58,4 +58,4 @@ node_modules/
 
 youtube_token.json
 secret_youtube.json
-secret_youtube_real.json
+secret_youtube_dev.json
