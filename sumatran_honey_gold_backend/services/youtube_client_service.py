@@ -58,19 +58,19 @@ class YouTubeClient:
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
 
-            # with open(TOKEN_FILE, "w") as token:
-            #     token.write(creds.to_json())
-            try:
-                setting = Setting.objects.filter(key="youtube_token").first()
-                user_id = None
+            with open(TOKEN_FILE, "w") as token:
+                token.write(creds.to_json())
+            # try:
+            #     setting = Setting.objects.filter(key="youtube_token").first()
+            #     user_id = None
 
-                if setting:
-                    old_data = json.loads(setting.value)
-                    user_id = old_data.get("user_id")
+            #     if setting:
+            #         old_data = json.loads(setting.value)
+            #         user_id = old_data.get("user_id")
 
-                YouTubeClient.save_to_db(creds, user_id=user_id)
-            except Exception as e:
-                print("Failed to update DB token:", str(e))
+            #     YouTubeClient.save_to_db(creds, user_id=user_id)
+            # except Exception as e:
+            #     print("Failed to update DB token:", str(e))
 
         youtube = build("youtube", "v3", credentials=creds)
 
