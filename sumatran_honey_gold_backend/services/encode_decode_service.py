@@ -6,6 +6,10 @@ from django.conf import settings
 
 class EncodeDecodeService:
     @staticmethod
+    def add_padding(base64_str: str) -> str:
+        return base64_str + '=' * (-len(base64_str) % 4)
+
+    @staticmethod
     def encode_state(data: dict) -> str:
         payload = json.dumps(data)
 
@@ -27,8 +31,11 @@ class EncodeDecodeService:
     @staticmethod
     def decode_state(state: str) -> dict:
         try:
+            def add_padding(s):
+                return s + '=' * (-len(s) % 4)
+            
             decoded = json.loads(
-                base64.urlsafe_b64decode(state.encode()).decode()
+                base64.urlsafe_b64decode(add_padding(state)).decode()
             )
 
             payload = decoded.get("payload")

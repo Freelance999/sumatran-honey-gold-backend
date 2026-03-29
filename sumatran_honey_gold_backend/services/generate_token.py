@@ -9,7 +9,7 @@ flow = InstalledAppFlow.from_client_secrets_file(
 
 creds = flow.run_local_server(port=8080)
 
-with open("youtube_token_real.json", "w") as token:
+with open("youtube_token.json", "w") as token:
     token.write(creds.to_json())
 
 print("Token generated!")
