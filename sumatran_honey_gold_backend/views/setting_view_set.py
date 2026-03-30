@@ -21,7 +21,7 @@ class SettingViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in ["generate_channel_info", "youtube_callback"]:
+        if self.action in ["generate_channel_info", "youtube_callback", "get_channel_info"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
@@ -155,24 +155,7 @@ class SettingViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="channel-info")
     def get_channel_info(self, request):
         try:
-            # creds = Credentials.from_authorized_user_file("youtube_token.json")
-            setting = Setting.objects.filter(key="youtube_token").first()
-
-            if not setting:
-                return Response({
-                    "message": "Token not found"
-                }, status=404)
-
-            token_data = json.loads(setting.value)
-
-            creds = Credentials(
-                token=token_data["token"],
-                refresh_token=token_data["refresh_token"],
-                token_uri=token_data["token_uri"],
-                client_id=token_data["client_id"],
-                client_secret=token_data["client_secret"],
-                scopes=token_data["scopes"]
-            )
+            creds = Credentials.from_authorized_user_file("youtube_token.json")
 
             if creds.expired and creds.refresh_token:
                 creds.refresh(Request())
@@ -204,6 +187,21 @@ class SettingViewSet(viewsets.ViewSet):
             else:
                 channel_url = f"https://www.youtube.com/channel/{channel_id}"
 
+            is_live_enabled = False
+
+            try:
+                live_response = youtube.liveBroadcasts().list(
+                    part="status",
+                    broadcastType="all",
+                    mine=True,
+                    maxResults=1
+                ).execute()
+                print("Live response", live_response)
+                is_live_enabled = True
+
+            except Exception:
+                is_live_enabled = False
+
             data = {
                 "channel_id": channel_id,
                 "title": snippet.get("title"),
@@ -217,6 +215,7 @@ class SettingViewSet(viewsets.ViewSet):
                 "video_count": statistics.get("videoCount"),
                 "view_count": statistics.get("viewCount"),
                 "banner": branding.get("image", {}).get("bannerExternalUrl"),
+                "is_live_streaming_enabled": is_live_enabled,
             }
 
             return Response({
