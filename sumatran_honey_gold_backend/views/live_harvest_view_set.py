@@ -1,9 +1,11 @@
+import base64
 import datetime
 from django.utils import timezone
 from googleapiclient.discovery import build
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.core.files.base import ContentFile
 from rest_framework.permissions import AllowAny
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -37,6 +39,17 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             latitude = request.data.get("latitude")
             longitude = request.data.get("longitude")
             block_id = request.data.get("block_id")
+            harvester_name = request.data.get("harvester_name")
+            cameraman = request.data.get("cameraman")
+            water_prediction = request.data.get("water_prediction")
+            photos = []
+            for i in range(4):
+                id_key = f"photo_list[{i}][id]"
+                file_key = f"photo_list[{i}][photo]"
+                pid = request.data.get(id_key)
+                file = request.FILES.get(file_key)
+                if pid and file:
+                    photos.append({"id": int(pid), "file": file})
 
             if LiveHarvest.objects.filter(status="LIVE").exists():
                 return Response({
@@ -91,6 +104,8 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             weather_temperature = weather["temperature"]
             weather_humidity = weather["humidity"]
             weather_wind_speed = weather["wind_speed"]
+            weather_uv = weather["uv"]
+            weather_rain = weather["rain"]
 
             data = {
                 "block": block_id,
@@ -102,7 +117,12 @@ class LiveHarvestViewSet(viewsets.ViewSet):
                 "status": "LIVE",
                 "weather_temperature": weather_temperature,
                 "weather_humidity": weather_humidity,
-                "weather_wind_speed": weather_wind_speed
+                "weather_wind_speed": weather_wind_speed,
+                "weather_uv": weather_uv,
+                "weather_rain": weather_rain,
+                "harvester_name": harvester_name,
+                "cameraman": cameraman,
+                "water_prediction": water_prediction
             }
 
             serializer = LiveHarvestSerializer(data=data)
@@ -114,6 +134,19 @@ class LiveHarvestViewSet(viewsets.ViewSet):
                     "message": "Validation failed",
                     "errors": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+            photo_field_map = {
+                1: "selfie_photo",
+                2: "area_photo",
+                3: "sky_photo",
+                4: "water_prediction_photo"
+            }
+            for photo_obj in photos:
+                pid = photo_obj.get("id")
+                file = photo_obj.get("file")
+                if pid in photo_field_map and file:
+                    setattr(live, photo_field_map[pid], file)
+            live.save()
 
             ffmpeg_service.start_streaming(youtube_rtmp)
 

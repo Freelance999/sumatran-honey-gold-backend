@@ -9,7 +9,7 @@ class ClientAdmin(admin.ModelAdmin):
     list_display = ('name', 'color', 'logo', 'created_at', 'updated_at')
 
 class LiveHarvestAdmin(admin.ModelAdmin):
-    list_display = ('client', 'block', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'weather_temperature', 'weather_humidity', 'weather_wind_speed', 'created_at', 'updated_at')
+    list_display = ('client', 'block', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'weather_temperature', 'weather_humidity', 'weather_wind_speed', 'weather_uv', 'weather_rain', 'harvester_name', 'cameraman', 'water_prediction', 'selfie_photo', 'area_photo', 'sky_photo', 'water_prediction_photo', 'created_at', 'updated_at')
 
 class HoneyBatchAdmin(admin.ModelAdmin):
     list_display = ('id', 'live_harvest', 'brand', 'quantity', 'weight', 'status', 'created_at', 'updated_at')
