@@ -36,6 +36,7 @@ class LiveHarvestViewSet(viewsets.ViewSet):
         try:
             latitude = request.data.get("latitude")
             longitude = request.data.get("longitude")
+            block_id = request.data.get("block_id")
 
             if LiveHarvest.objects.filter(status="LIVE").exists():
                 return Response({
@@ -92,6 +93,7 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             weather_wind_speed = weather["wind_speed"]
 
             data = {
+                "block": block_id,
                 "youtube_video_id": broadcast["id"],
                 "youtube_stream_id": stream["id"],
                 "start_time": timezone.now(),

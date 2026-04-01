@@ -11,7 +11,7 @@ django-cors-headers==4.9.0
 django-crontab==0.7.1
 djangorestframework==3.16.1
 google-ai-generativelanguage==0.6.15
-google-api-core==2.30.0
+google-api-core>=2.20.0,<3.0.0
 google-api-python-client==2.192.0
 google-auth==2.48.0
 google-auth-httplib2==0.3.0
