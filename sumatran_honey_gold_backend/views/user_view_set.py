@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
-from ..models import UserToken, RefreshToken
+from ..models import UserToken, RefreshToken, Role
 from ..serializers import UserSerializer
 
 class UserViewSet(viewsets.ViewSet):
@@ -30,7 +30,19 @@ class UserViewSet(viewsets.ViewSet):
             first_name = request.data.get('first_name', '')
             is_staff = request.data.get('is_staff', False)
             is_superuser = request.data.get('is_superuser', False)
+            id_role = request.data.get('id_role')
 
+            if not id_role:
+                id_role = 3
+
+            try:
+                role_instance = Role.objects.get(id_role=id_role)
+            except Role.DoesNotExist:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Role tidak ditemukan"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
             name_parts = first_name.strip().split()
             if len(name_parts) > 1:
                 processed_first_name = name_parts[0]
@@ -42,6 +54,7 @@ class UserViewSet(viewsets.ViewSet):
             request_data = request.data.copy()
             request_data['first_name'] = processed_first_name
             request_data['last_name'] = processed_last_name
+            request_data['role'] = role_instance.id
 
             User = get_user_model()
             if User.objects.filter(username=username).exists():
@@ -63,6 +76,7 @@ class UserViewSet(viewsets.ViewSet):
                 user.set_password(password)
                 user.is_staff = is_staff
                 user.is_superuser = is_superuser
+                user.role = role_instance
                 user.save()
 
                 access = UserToken.objects.create(user=user)

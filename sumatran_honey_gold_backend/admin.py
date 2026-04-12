@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'date_joined')
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('name', 'color', 'logo', 'created_at', 'updated_at')
@@ -29,6 +29,9 @@ class BlockAdmin(admin.ModelAdmin):
 class SettingAdmin(admin.ModelAdmin):
     list_display = ('key', 'value', 'created_at', 'updated_at')
 
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'id_role', 'created_at', 'updated_at')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
@@ -38,3 +41,4 @@ admin.site.register(Certificate, CertificateAdmin)
 admin.site.register(WeatherObservation, WeatherObservationAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(Setting, SettingAdmin)
+admin.site.register(Role, RoleAdmin)

@@ -5,11 +5,6 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
-
-class CustomUser(AbstractUser):
-
-    def __str__(self):
-        return self.username
     
 class UserToken(models.Model):
     key = models.CharField(max_length=40, primary_key=True)
@@ -177,3 +172,18 @@ class Setting(models.Model):
 
     def __str__(self):
         return f"{self.key}"
+    
+class Role(models.Model):
+    name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    id_role = models.IntegerField(unique=True, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name}"
+    
+class CustomUser(AbstractUser):
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return self.username
