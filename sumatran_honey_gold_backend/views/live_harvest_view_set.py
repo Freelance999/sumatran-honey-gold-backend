@@ -5,7 +5,6 @@ from googleapiclient.discovery import build
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.core.files.base import ContentFile
 from rest_framework.permissions import AllowAny
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -16,7 +15,7 @@ from ..services.weather_service import WeatherService
 from ..services.ffmpeg_service import FFmpegService
 from ..middlewares.permissions import IsSuperUser
 from ..serializers import LiveHarvestSerializer
-from ..models import LiveHarvest
+from ..models import LiveHarvest, Block
 
 ffmpeg_service = FFmpegService()
 weather_service = WeatherService()
@@ -60,11 +59,16 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             youtube = YouTubeClient.get_client()
             start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
+            weather = weather_service.get_weather(latitude, longitude)
+            weather_temperature = weather["temperature"]
+            
+            block = Block.objects.filter(id=block_id).first()
+
             broadcast = youtube.liveBroadcasts().insert(
                 part="snippet,status,contentDetails",
                 body={
                     "snippet": {
-                        "title": "Live Panen Madu",
+                        "title": f"Live Panen Blok {block.code} - Suhu Optimal {weather_temperature}°C",
                         "scheduledStartTime": start_time
                     },
                     "status": {
@@ -100,8 +104,6 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             ingestion_address = stream["cdn"]["ingestionInfo"]["ingestionAddress"]
             youtube_rtmp = f"{ingestion_address}/{stream_key}"
 
-            weather = weather_service.get_weather(latitude, longitude)
-            weather_temperature = weather["temperature"]
             weather_humidity = weather["humidity"]
             weather_wind_speed = weather["wind_speed"]
             weather_uv = weather["uv"]
