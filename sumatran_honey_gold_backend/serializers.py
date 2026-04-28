@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory
 
 User = get_user_model()
 
@@ -16,7 +16,15 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = ['id', 'name', 'color', 'logo', 'created_at', 'updated_at']
 
+class BlockSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Block
+        fields = ['id', 'code', 'name', 'created_at', 'updated_at']
+
 class LiveHarvestSerializer(serializers.ModelSerializer):
+    block = BlockSerializer(read_only=True)
+    block_id = serializers.PrimaryKeyRelatedField(queryset=Block.objects.all(), source='block', write_only=True)
 
     class Meta:
         model = LiveHarvest
@@ -46,12 +54,6 @@ class WeatherObservationSerializer(serializers.ModelSerializer):
         model = WeatherObservation
         fields = ['id', 'station_id', 'temperature', 'humidity', 'wind_speed', 'pressure', 'precip_rate', 'latitude', 'longitude', 'observed_at', 'created_at', 'updated_at']
 
-class BlockSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Block
-        fields = ['id', 'code', 'name', 'created_at', 'updated_at']
-
 class SettingSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -63,3 +65,28 @@ class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['id', 'name', 'id_role', 'created_at', 'updated_at']
+
+class RawStockSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = RawStock
+        fields = ['id', 'live_harvest', 'live_harvest_id', 'weight_kg', 'remaining_kg', 'status', 'created_at', 'updated_at']
+
+
+class BottlingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Bottling
+        fields = ['id', 'raw_stock', 'raw_stock_id', 'bottle_size_ml', 'quantity', 'used_kg', 'created_at', 'updated_at']
+
+class BrandSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Brand
+        fields = ['id', 'name', 'logo', 'is_active', 'created_at', 'updated_at']
+
+class InventorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Inventory
+        fields = ['id', 'brand', 'brand_id', 'bottle_size_ml', 'stock', 'created_at', 'updated_at']

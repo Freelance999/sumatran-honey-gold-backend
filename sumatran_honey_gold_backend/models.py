@@ -107,10 +107,43 @@ class LiveHarvest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+class RawStock(models.Model):
+    live_harvest = models.ForeignKey(LiveHarvest, related_name='raw_stocks', on_delete=models.CASCADE, null=True, blank=True)
+    weight_kg = models.FloatField(null=True, blank=True)
+    remaining_kg = models.FloatField(null=True, blank=True)
+    status = models.CharField(max_length=20, default="AVAILABLE")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.live_harvest} - {self.weight_kg} kg"
+
+class Bottling(models.Model):
+    raw_stock = models.ForeignKey(RawStock, related_name='bottlings', on_delete=models.CASCADE, null=True, blank=True)
+    bottle_size_ml = models.IntegerField(null=True, blank=True)
+    quantity = models.IntegerField(null=True, blank=True)
+    used_kg = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.raw_stock} - {self.bottle_size_ml} ml"
+
+class Brand(models.Model):
+    name = models.CharField(max_length=100, null=True, blank=True)
+    logo = models.ImageField(upload_to='brands/', null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name}"
+
 class HoneyBatch(models.Model):
     live_harvest = models.ForeignKey(LiveHarvest, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    bottling = models.ForeignKey(Bottling, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    brand = models.ForeignKey(Brand, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
     batch_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    brand = models.CharField(max_length=100, null=True, blank=True)
     quantity = models.IntegerField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
     status = models.CharField(max_length=20, null=True, blank=True)
@@ -124,6 +157,8 @@ class HoneyBottle(models.Model):
     honey_batch = models.ForeignKey(HoneyBatch, related_name='honey_bottles', on_delete=models.CASCADE)
     qr_code = models.ImageField(upload_to='images/', null=True, blank=True)
     serial_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -187,3 +222,13 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
+
+class Inventory(models.Model):
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, null=True, blank=True)
+    bottle_size_ml = models.IntegerField(null=True, blank=True)
+    stock = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.brand} - {self.bottle_size_ml} ml"

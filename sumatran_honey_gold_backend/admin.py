@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'date_joined')
@@ -32,6 +32,18 @@ class SettingAdmin(admin.ModelAdmin):
 class RoleAdmin(admin.ModelAdmin):
     list_display = ('name', 'id_role', 'created_at', 'updated_at')
 
+class RawStockAdmin(admin.ModelAdmin):
+    list_display = ('live_harvest', 'weight_kg', 'remaining_kg', 'status', 'created_at', 'updated_at')
+
+class BottlingAdmin(admin.ModelAdmin):
+    list_display = ('raw_stock', 'bottle_size_ml', 'quantity', 'used_kg', 'created_at', 'updated_at')
+
+class BrandAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'logo', 'is_active', 'created_at', 'updated_at')
+
+class InventoryAdmin(admin.ModelAdmin):
+    list_display = ('brand', 'bottle_size_ml', 'stock', 'created_at', 'updated_at')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
@@ -42,3 +54,7 @@ admin.site.register(WeatherObservation, WeatherObservationAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(Setting, SettingAdmin)
 admin.site.register(Role, RoleAdmin)
+admin.site.register(RawStock, RawStockAdmin)
+admin.site.register(Bottling, BottlingAdmin)
+admin.site.register(Brand, BrandAdmin)
+admin.site.register(Inventory, InventoryAdmin)
