@@ -12,6 +12,7 @@ from .views.dashboard_view_set import DashboardViewSet
 from .views.setting_view_set import SettingViewSet
 from .views.weather_view_set import WeatherViewSet
 from .views.client_view_set import ClientViewSet
+from .views.mentor_view_set import MentorViewSet
 from .views.user_view_set import UserViewSet
 
 router = DefaultRouter()
@@ -25,6 +26,7 @@ router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"setting", SettingViewSet, basename="setting")
 router.register(r"weather", WeatherViewSet, basename="weather")
 router.register(r"client", ClientViewSet, basename="client")
+router.register(r"mentor", MentorViewSet, basename="mentor")
 router.register(r"user", UserViewSet, basename="user")
 
 urlpatterns = [

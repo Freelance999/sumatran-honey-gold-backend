@@ -2,6 +2,7 @@ import re
 import json
 from google import genai
 from django.conf import settings
+from typing import Optional, Dict, Any
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 MODEL_NAME = "gemini-2.5-flash"
@@ -116,3 +117,71 @@ class AiService:
             })
 
         return alerts
+
+    @staticmethod
+    def build_mentor_analysis_prompt(statistics: dict) -> str:
+        return f"""
+        Anda adalah asisten analitik untuk dashboard mentor penjualan madu.
+
+        Tugas: berikan 3 ringkasan naratif singkat dalam Bahasa Indonesia berdasarkan data JSON berikut.
+        Satu paragraf per area; gaya profesional, positif, dan actionable.
+
+        ATURAN KETAT:
+        - Output HARUS berupa JSON valid
+        - TANPA markdown
+        - TANPA penjelasan di luar JSON
+        - HANYA objek JSON dengan tepat 3 key berikut (string values):
+
+        FORMAT:
+        {{
+        "mentor_commission": "string",
+        "mentor_income": "string",
+        "mentor_network": "string"
+        }}
+
+        DATA STATISTIK:
+        {json.dumps(statistics, ensure_ascii=False)}
+        """
+
+    @staticmethod
+    def _parse_json_object(text: str) -> Optional[Dict[str, Any]]:
+        if not text:
+            return None
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(text[start : end + 1])
+            except Exception:
+                return None
+        return None
+
+    @staticmethod
+    def analyze_mentor_statistics(statistics: dict) -> dict:
+        fallback = {
+            "mentor_commission": "Analisis komisi mentor tidak dapat dihasilkan saat ini.",
+            "mentor_income": "Analisis penjualan pribadi tidak dapat dihasilkan saat ini.",
+            "mentor_network": "Analisis jaringan tidak dapat dihasilkan saat ini.",
+        }
+        try:
+            prompt = AiService.build_mentor_analysis_prompt(statistics)
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+            )
+            text = response.text
+        except Exception:
+            return fallback
+
+        parsed = AiService._parse_json_object(text)
+        if not isinstance(parsed, dict):
+            return fallback
+
+        for key in ("mentor_commission", "mentor_income", "mentor_network"):
+            if key not in parsed or not isinstance(parsed[key], str):
+                parsed[key] = fallback[key]
+        return parsed

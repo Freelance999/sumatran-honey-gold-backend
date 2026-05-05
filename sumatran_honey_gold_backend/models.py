@@ -200,7 +200,7 @@ class WeatherObservation(models.Model):
         return f"Weather at {self.observed_at} - Temp: {self.temperature}°C"
     
 class Setting(models.Model):
-    key = models.CharField(max_length=255,unique=True, null=True, blank=True)
+    key = models.CharField(max_length=255, unique=True, null=True, blank=True)
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -224,7 +224,7 @@ class CustomUser(AbstractUser):
         return self.username
 
 class Inventory(models.Model):
-    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, null=True, blank=True)
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name="inventories", null=True, blank=True)
     bottle_size_ml = models.IntegerField(null=True, blank=True)
     stock = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -232,3 +232,50 @@ class Inventory(models.Model):
 
     def __str__(self):
         return f"{self.brand} - {self.bottle_size_ml} ml"
+
+class School(models.Model):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return self.name
+
+class Teacher(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="teachers", null=True, blank=True)
+    mentor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="managed_teachers")
+    school = models.ManyToManyField(School, through="TeacherSchool", related_name="teachers")
+    customer_count = models.PositiveIntegerField(default=0)
+    omzet = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        if self.user_id:
+            return f"{self.user.username} profile"
+        return "Teacher profile"
+
+
+class MentorPersonalOrder(models.Model):
+    class BuyerType(models.TextChoices):
+        PEOPLE = "people", "people"
+        SCHOOL = "school", "school"
+
+    mentor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mentor_personal_orders", null=True, blank=True)
+    product_name = models.CharField(max_length=255, null=True, blank=True)
+    weight = models.PositiveIntegerField(help_text="Berat/kemasan produk (mis. gram atau ml sesuai varian)",)
+    quantity = models.PositiveIntegerField(default=1, null=True, blank=True)
+    line_total = models.BigIntegerField(null=True, blank=True, help_text="Nilai rupiah baris (mis. qty x harga satuan)")
+    buyer_type = models.CharField(max_length=20, choices=BuyerType.choices, null=True, blank=True)
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name="mentor_personal_orders")
+    buyer_reference = models.CharField(max_length=255, blank=True, default="", help_text="Identitas pembeli (orang); dipakai untuk menghitung jumlah orang unik")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class TeacherSchool(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="teacher_schools")
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="teacher_schools")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        unique_together = ("teacher", "school")

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, MentorPersonalOrder
 
 User = get_user_model()
 
@@ -90,3 +90,35 @@ class InventorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Inventory
         fields = ['id', 'brand', 'brand_id', 'bottle_size_ml', 'stock', 'created_at', 'updated_at']
+
+
+class SchoolSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = School
+        fields = ['id', 'name', 'address', 'created_at', 'updated_at']
+
+
+class TeacherSchoolSerializer(serializers.ModelSerializer):
+    school = SchoolSerializer(read_only=True)
+    school_id = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', write_only=True)
+
+    class Meta:
+        model = TeacherSchool
+        fields = ['id', 'teacher', 'teacher_id', 'school', 'school_id', 'created_at', 'updated_at']
+
+
+class TeacherSerializer(serializers.ModelSerializer):
+    school = SchoolSerializer(many=True, read_only=True)
+    school_ids = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', many=True, write_only=True, required=False)
+
+    class Meta:
+        model = Teacher
+        fields = ['id', 'user', 'user_id', 'mentor', 'mentor_id', 'school', 'school_ids', 'customer_count', 'omzet', 'created_at', 'updated_at']
+
+
+class MentorPersonalOrderSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MentorPersonalOrder
+        fields = ['id', 'mentor', 'mentor_id', 'product_name', 'weight', 'quantity', 'line_total', 'buyer_type', 'school', 'school_id', 'buyer_reference', 'created_at', 'updated_at']

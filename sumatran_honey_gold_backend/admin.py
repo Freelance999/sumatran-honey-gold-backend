@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, MentorPersonalOrder
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'date_joined')
@@ -44,6 +44,25 @@ class BrandAdmin(admin.ModelAdmin):
 class InventoryAdmin(admin.ModelAdmin):
     list_display = ('brand', 'bottle_size_ml', 'stock', 'created_at', 'updated_at')
 
+class SchoolAdmin(admin.ModelAdmin):
+    list_display = ('name', 'address', 'created_at', 'updated_at')
+    search_fields = ('name', 'address')
+
+class TeacherAdmin(admin.ModelAdmin):
+    list_display = ('user', 'mentor', 'customer_count', 'omzet', 'created_at', 'updated_at')
+    list_filter = ('mentor',)
+    search_fields = ('user__username', 'mentor__username')
+
+class TeacherSchoolAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'school', 'created_at', 'updated_at')
+    list_filter = ('school',)
+    search_fields = ('teacher__user__username', 'school__name')
+
+class MentorPersonalOrderAdmin(admin.ModelAdmin):
+    list_display = ('mentor', 'product_name', 'weight', 'quantity', 'line_total', 'buyer_type', 'school', 'buyer_reference', 'created_at')
+    list_filter = ('buyer_type', 'mentor')
+    search_fields = ('product_name', 'mentor__username', 'buyer_reference', 'school__name')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
@@ -58,3 +77,7 @@ admin.site.register(RawStock, RawStockAdmin)
 admin.site.register(Bottling, BottlingAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(Inventory, InventoryAdmin)
+admin.site.register(School, SchoolAdmin)
+admin.site.register(Teacher, TeacherAdmin)
+admin.site.register(TeacherSchool, TeacherSchoolAdmin)
+admin.site.register(MentorPersonalOrder, MentorPersonalOrderAdmin)
