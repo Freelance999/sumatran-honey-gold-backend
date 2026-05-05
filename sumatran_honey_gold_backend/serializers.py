@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, MentorPersonalOrder
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder
 
 User = get_user_model()
 
@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta(object):
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'date_joined']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'phone_number', 'date_joined']
 
 class ClientSerializer(serializers.ModelSerializer):
 
@@ -115,6 +115,13 @@ class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
         fields = ['id', 'user', 'user_id', 'mentor', 'mentor_id', 'school', 'school_ids', 'customer_count', 'omzet', 'created_at', 'updated_at']
+
+
+class UserDocumentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserDocument
+        fields = ['id', 'user', 'user_id', 'url', 'type', 'created_at', 'updated_at']
 
 
 class MentorPersonalOrderSerializer(serializers.ModelSerializer):

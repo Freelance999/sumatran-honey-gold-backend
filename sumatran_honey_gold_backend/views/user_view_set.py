@@ -1,19 +1,24 @@
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import FormParser, MultiPartParser
 from ..middlewares.authentications import BearerTokenAuthentication
+from ..models import UserToken, RefreshToken, Role as RoleModel, School, Teacher
+from ..services.storage_service import StorageService
 from ..middlewares.permissions import IsSuperUser
-from ..models import UserToken, RefreshToken, Role
 from ..serializers import UserSerializer
+from ..constants.role import Role as RoleConstant
 
 class UserViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
+    parser_classes = [FormParser, MultiPartParser]
 
     def get_permissions(self):
-        if self.action in ["create"]:
+        if self.action in ["create", "register_teacher"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
@@ -21,6 +26,21 @@ class UserViewSet(viewsets.ViewSet):
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
+
+    @staticmethod
+    def _build_unique_username(User, email, full_name):
+        base_candidate = (email or "").split("@")[0].strip().lower()
+        if not base_candidate:
+            base_candidate = "-".join((full_name or "").strip().lower().split())
+        if not base_candidate:
+            base_candidate = "teacher"
+        base_candidate = base_candidate.replace(" ", "-")
+        username = base_candidate
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_candidate}{counter}"
+            counter += 1
+        return username
     
     def create(self, request):
         try:
@@ -33,11 +53,11 @@ class UserViewSet(viewsets.ViewSet):
             id_role = request.data.get('id_role')
 
             if not id_role:
-                id_role = 3
+                id_role = RoleConstant.CONSUMER.value
 
             try:
-                role_instance = Role.objects.get(id_role=id_role)
-            except Role.DoesNotExist:
+                role_instance = RoleModel.objects.get(id_role=id_role)
+            except RoleModel.DoesNotExist:
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Role tidak ditemukan"

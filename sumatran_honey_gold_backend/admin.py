@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, MentorPersonalOrder
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'phone_number', 'date_joined')
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('name', 'color', 'logo', 'created_at', 'updated_at')
@@ -58,6 +58,11 @@ class TeacherSchoolAdmin(admin.ModelAdmin):
     list_filter = ('school',)
     search_fields = ('teacher__user__username', 'school__name')
 
+class UserDocumentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'type', 'url', 'created_at', 'updated_at')
+    list_filter = ('type',)
+    search_fields = ('user__username', 'url')
+
 class MentorPersonalOrderAdmin(admin.ModelAdmin):
     list_display = ('mentor', 'product_name', 'weight', 'quantity', 'line_total', 'buyer_type', 'school', 'buyer_reference', 'created_at')
     list_filter = ('buyer_type', 'mentor')
@@ -80,4 +85,5 @@ admin.site.register(Inventory, InventoryAdmin)
 admin.site.register(School, SchoolAdmin)
 admin.site.register(Teacher, TeacherAdmin)
 admin.site.register(TeacherSchool, TeacherSchoolAdmin)
+admin.site.register(UserDocument, UserDocumentAdmin)
 admin.site.register(MentorPersonalOrder, MentorPersonalOrderAdmin)

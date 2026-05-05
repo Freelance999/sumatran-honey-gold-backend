@@ -47,7 +47,6 @@ def _primary_school_name(teacher: Teacher) -> str:
 
 
 def build_mentor_statistics_payload(mentor_user):
-    """Montir payload mentor_commission / mentor_income / mentor_network untuk response & AI."""
     teachers = (
         Teacher.objects.filter(mentor=mentor_user)
         .select_related("user")

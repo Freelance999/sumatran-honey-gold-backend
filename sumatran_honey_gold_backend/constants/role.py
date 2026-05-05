@@ -5,4 +5,4 @@ class Role(IntEnum):
     HARVESTER = 2
     CONSUMER = 3
     MENTOR = 4
-    TEACHER = 3
+    TEACHER = 5

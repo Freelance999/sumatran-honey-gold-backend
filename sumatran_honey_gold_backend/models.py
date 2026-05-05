@@ -219,6 +219,7 @@ class Role(models.Model):
     
 class CustomUser(AbstractUser):
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -254,6 +255,17 @@ class Teacher(models.Model):
         if self.user_id:
             return f"{self.user.username} profile"
         return "Teacher profile"
+
+
+class UserDocument(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="documents", null=True, blank=True)
+    url = models.URLField(max_length=1000, null=True, blank=True)
+    type = models.CharField(max_length=50, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user_id} - {self.type}"
 
 
 class MentorPersonalOrder(models.Model):
