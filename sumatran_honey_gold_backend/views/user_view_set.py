@@ -15,14 +15,13 @@ from ..constants.role import Role as RoleConstant
 
 class UserViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
-    parser_classes = [FormParser, MultiPartParser]
 
     def get_permissions(self):
         if self.action in ["create", "register_teacher"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
-        elif self.action in []:
+        elif self.action in ["fetch_users"]:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
@@ -117,6 +116,32 @@ class UserViewSet(viewsets.ViewSet):
                     "message": "Validation error",
                     "errors": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"], url_path="fetch-users")
+    def fetch_users(self, request):
+        try:
+            User = get_user_model()
+
+            is_active_param = request.query_params.get("is_active")
+            users = User.objects.select_related("role").order_by("-date_joined")
+
+            if is_active_param is not None:
+                is_active_user = is_active_param.lower() == "true"
+                users = users.filter(is_active=is_active_user)
+
+            serializer = UserSerializer(users, many=True, context={"request": request})
+
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Users fetched successfully.",
+                "data": serializer.data,
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({

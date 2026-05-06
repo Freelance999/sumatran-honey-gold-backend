@@ -109,6 +109,8 @@ class TeacherSchoolSerializer(serializers.ModelSerializer):
 
 
 class TeacherSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    mentor = UserSerializer(read_only=True)
     school = SchoolSerializer(many=True, read_only=True)
     school_ids = serializers.PrimaryKeyRelatedField(queryset=School.objects.all(), source='school', many=True, write_only=True, required=False)
 

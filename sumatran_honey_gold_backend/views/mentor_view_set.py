@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..models import Teacher, MentorPersonalOrder
+from ..middlewares.permissions import IsSuperUser
+from ..serializers import TeacherSerializer
 from ..services.ai_service import AiService
 from ..constants.role import Role
 
@@ -138,10 +140,12 @@ class MentorViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in []:
+        if self.action in ["fetch_statistic", "fetch_statistical_analysis"]:
             permission_classes = [AllowAny]
-        else:
+        elif self.action in ["recruit_teacher"]:
             permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsSuperUser]
 
         return [permission() for permission in permission_classes]
 
@@ -149,63 +153,104 @@ class MentorViewSet(viewsets.ViewSet):
     def fetch_statistic(self, request):
         try:
             if not _is_mentor(request.user):
-                return Response(
-                    {
-                        "status": status.HTTP_403_FORBIDDEN,
-                        "message": "Hanya akun mentor yang dapat mengakses statistik ini.",
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Hanya akun mentor yang dapat mengakses statistik ini.",
+                }, status=status.HTTP_403_FORBIDDEN)
 
             data = build_mentor_statistics_payload(request.user)
 
-            return Response(
-                {
-                    "status": status.HTTP_200_OK,
-                    "message": "Statistik mentor berhasil diambil.",
-                    "data": data,
-                },
-                status=status.HTTP_200_OK,
-            )
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Statistik mentor berhasil diambil.",
+                "data": data,
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response(
-                {
-                    "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": str(e),
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"], url_path="fetch-statistical-analysis")
     def fetch_statistical_analysis(self, request):
         try:
             if not _is_mentor(request.user):
-                return Response(
-                    {
-                        "status": status.HTTP_403_FORBIDDEN,
-                        "message": "Hanya akun mentor yang dapat mengakses analisis ini.",
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Hanya akun mentor yang dapat mengakses analisis ini.",
+                }, status=status.HTTP_403_FORBIDDEN)
 
             statistics = build_mentor_statistics_payload(request.user)
             analysis = AiService.analyze_mentor_statistics(statistics)
 
-            return Response(
-                {
-                    "status": status.HTTP_200_OK,
-                    "message": "Analisis statistik berhasil dihasilkan.",
-                    "data": analysis,
-                },
-                status=status.HTTP_200_OK,
-            )
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Analisis statistik berhasil dihasilkan.",
+                "data": analysis,
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response(
-                {
-                    "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": str(e),
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"], url_path="recruit-teacher")
+    def recruit_teacher(self, request):
+        try:
+            if not _is_mentor(request.user):
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Hanya akun mentor yang dapat merekrut dan melihat guru.",
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            teacher_id = request.data.get("teacher_id")
+
+            if teacher_id:
+                teachers = Teacher.objects.select_related("user", "user__role")
+                
+                try:
+                    teacher = teachers.get(id=teacher_id)
+                except (Teacher.DoesNotExist, ValueError):
+                    return Response({
+                        "status": status.HTTP_404_NOT_FOUND,
+                        "message": "Teacher tidak ditemukan.",
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+                teacher_user_role = getattr(getattr(teacher, "user", None), "role", None)
+                if not teacher_user_role or teacher_user_role.id_role != Role.TEACHER.value:
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "User yang dipilih bukan akun teacher.",
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                if teacher.mentor_id and teacher.mentor_id != request.user.id:
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "Teacher ini sudah direkrut oleh mentor lain.",
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                if teacher.mentor_id != request.user.id:
+                    teacher.mentor = request.user
+                    teacher.save(update_fields=["mentor", "updated_at"])
+
+            teachers = (
+                Teacher.objects.filter(mentor=request.user)
+                .select_related("user", "mentor")
+                .prefetch_related("school", "teacher_schools__school")
+                .order_by("-updated_at")
             )
+
+            serializer = TeacherSerializer(teachers, many=True, context={"request": request})
+
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Guru berhasil direkrut oleh anda.",
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
