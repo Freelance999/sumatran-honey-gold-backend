@@ -8,12 +8,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from ..middlewares.authentications import BearerTokenAuthentication
-from ..middlewares.permissions import IsSuperUser
 from ..models import LiveHarvest, HoneyBatch, HoneyBottle, WeatherObservation
+from ..middlewares.authentications import BearerTokenAuthentication
 from ..serializers import LiveHarvestSerializer, BlockSerializer
-from ..services.ai_service import AiService
 from ..services.weather_service import WeatherService
+from ..middlewares.permissions import IsSuperUser
+from ..services.ai_service import AiService
+from ..constants.cache_key import CacheKey as CacheKeyConstant
 
 class DashboardViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
@@ -207,7 +208,7 @@ class DashboardViewSet(viewsets.ViewSet):
             # final_alerts = AiService.generate_alerts(prompt)
             # Uncomment kalau gamau pakai rule
             
-            cache.set(cache_key, final_alerts, timeout=3600)
+            cache.set(CacheKeyConstant.SYSTEM_ALERTS_LATESTS.value, final_alerts, timeout=3600)
 
             return Response({
                 "status": status.HTTP_200_OK,

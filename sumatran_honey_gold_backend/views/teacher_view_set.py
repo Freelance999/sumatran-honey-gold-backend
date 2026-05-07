@@ -109,11 +109,17 @@ class TeacherViewSet(viewsets.ViewSet):
                 teacher = Teacher.objects.create(user=user)
                 teacher.school.add(school)
 
-                for url in uploaded_media_urls:
+                document_types = [
+                    "identity_card",
+                    "certificate",
+                    "support_document",
+                ]
+
+                for index, url in enumerate(uploaded_media_urls):
                     UserDocument.objects.create(
                         user=user,
                         url=url,
-                        type="other",
+                        type=document_types[index] if index < len(document_types) else "other",
                     )
 
             return Response({

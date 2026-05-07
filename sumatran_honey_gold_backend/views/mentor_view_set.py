@@ -1,16 +1,18 @@
 from decimal import Decimal
 from django.db.models import Sum
+from django.core.cache import cache
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
+from ..constants.cache_key import CacheKey as CacheKeyConstant
 from ..models import Teacher, MentorPersonalOrder
 from ..middlewares.permissions import IsSuperUser
+from ..constants.role import Role as RoleConstant
 from ..serializers import TeacherSerializer
 from ..services.ai_service import AiService
-from ..constants.role import Role
 
 COMMISSION_RATE = Decimal("0.05")
 
@@ -21,7 +23,7 @@ def _is_mentor(user) -> bool:
     if user.is_superuser:
         return True
     role = getattr(user, "role", None)
-    return bool(role and role.id_role == Role.MENTOR.value)
+    return bool(role and role.id_role == RoleConstant.MENTOR.value)
 
 
 def _teacher_display_name(teacher: Teacher) -> str:
@@ -175,6 +177,15 @@ class MentorViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="fetch-statistical-analysis")
     def fetch_statistical_analysis(self, request):
         try:
+            cached = cache.get(CacheKeyConstant.MENTOR_STATISTIC.value)
+
+            if cached:
+                return Response({
+                    "status": status.HTTP_200_OK,
+                    "message": "Analisis statistik (cached).",
+                    "data": cached
+                }, status=status.HTTP_200_OK)
+
             if not _is_mentor(request.user):
                 return Response({
                     "status": status.HTTP_403_FORBIDDEN,
@@ -183,6 +194,8 @@ class MentorViewSet(viewsets.ViewSet):
 
             statistics = build_mentor_statistics_payload(request.user)
             analysis = AiService.analyze_mentor_statistics(statistics)
+
+            cache.set(CacheKeyConstant.MENTOR_STATISTIC.value, analysis, timeout=3600)
 
             return Response({
                 "status": status.HTTP_200_OK,
@@ -219,7 +232,7 @@ class MentorViewSet(viewsets.ViewSet):
                     }, status=status.HTTP_404_NOT_FOUND)
 
                 teacher_user_role = getattr(getattr(teacher, "user", None), "role", None)
-                if not teacher_user_role or teacher_user_role.id_role != Role.TEACHER.value:
+                if not teacher_user_role or teacher_user_role.id_role != RoleConstant.TEACHER.value:
                     return Response({
                         "status": status.HTTP_400_BAD_REQUEST,
                         "message": "User yang dipilih bukan akun teacher.",
