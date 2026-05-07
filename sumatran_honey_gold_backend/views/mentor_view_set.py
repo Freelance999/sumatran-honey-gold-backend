@@ -11,20 +11,11 @@ from ..constants.cache_key import CacheKey as CacheKeyConstant
 from ..models import Teacher, MentorPersonalOrder
 from ..middlewares.permissions import IsSuperUser
 from ..constants.role import Role as RoleConstant
+from ..constants.role_permission import RolePermission
 from ..serializers import TeacherSerializer
 from ..services.ai_service import AiService
 
 COMMISSION_RATE = Decimal("0.05")
-
-
-def _is_mentor(user) -> bool:
-    if not user or not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    role = getattr(user, "role", None)
-    return bool(role and role.id_role == RoleConstant.MENTOR.value)
-
 
 def _teacher_display_name(teacher: Teacher) -> str:
     u = teacher.user
@@ -154,7 +145,7 @@ class MentorViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="fetch-statistic")
     def fetch_statistic(self, request):
         try:
-            if not _is_mentor(request.user):
+            if not RolePermission.is_mentor(request.user):
                 return Response({
                     "status": status.HTTP_403_FORBIDDEN,
                     "message": "Hanya akun mentor yang dapat mengakses statistik ini.",
@@ -186,7 +177,7 @@ class MentorViewSet(viewsets.ViewSet):
                     "data": cached
                 }, status=status.HTTP_200_OK)
 
-            if not _is_mentor(request.user):
+            if not RolePermission.is_mentor(request.user):
                 return Response({
                     "status": status.HTTP_403_FORBIDDEN,
                     "message": "Hanya akun mentor yang dapat mengakses analisis ini.",
@@ -212,7 +203,7 @@ class MentorViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="recruit-teacher")
     def recruit_teacher(self, request):
         try:
-            if not _is_mentor(request.user):
+            if not RolePermission.is_mentor(request.user):
                 return Response({
                     "status": status.HTTP_403_FORBIDDEN,
                     "message": "Hanya akun mentor yang dapat merekrut dan melihat guru.",

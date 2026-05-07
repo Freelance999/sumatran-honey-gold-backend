@@ -267,20 +267,22 @@ class UserDocument(models.Model):
     def __str__(self):
         return f"{self.user_id} - {self.type}"
 
-
 class MentorPersonalOrder(models.Model):
     class BuyerType(models.TextChoices):
         PEOPLE = "people", "people"
         SCHOOL = "school", "school"
 
     mentor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mentor_personal_orders", null=True, blank=True)
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name="mentor_personal_orders")
     product_name = models.CharField(max_length=255, null=True, blank=True)
     weight = models.PositiveIntegerField(help_text="Berat/kemasan produk (mis. gram atau ml sesuai varian)",)
     quantity = models.PositiveIntegerField(default=1, null=True, blank=True)
-    line_total = models.BigIntegerField(null=True, blank=True, help_text="Nilai rupiah baris (mis. qty x harga satuan)")
+    unit_price = models.BigIntegerField(null=True, blank=True)
+    line_total = models.BigIntegerField(null=True, blank=True)
     buyer_type = models.CharField(max_length=20, choices=BuyerType.choices, null=True, blank=True)
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name="mentor_personal_orders")
-    buyer_reference = models.CharField(max_length=255, blank=True, default="", help_text="Identitas pembeli (orang); dipakai untuk menghitung jumlah orang unik")
+    buyer_name = models.CharField(max_length=255, blank=True, null=True)
+    buyer_reference = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

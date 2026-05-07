@@ -130,4 +130,4 @@ class MentorPersonalOrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MentorPersonalOrder
-        fields = ['id', 'mentor', 'mentor_id', 'product_name', 'weight', 'quantity', 'line_total', 'buyer_type', 'school', 'school_id', 'buyer_reference', 'created_at', 'updated_at']
+        fields = ['id', 'mentor', 'mentor_id', 'teacher', 'teacher_id', 'product_name', 'weight', 'quantity', 'unit_price', 'line_total', 'buyer_type', 'school', 'school_id', 'buyer_name', 'buyer_reference', 'created_at', 'updated_at']

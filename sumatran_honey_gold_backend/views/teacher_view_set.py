@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -6,12 +7,13 @@ from django.contrib.auth import get_user_model
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from ..models import Role, School, Teacher, UserDocument, MentorPersonalOrder
 from ..middlewares.authentications import BearerTokenAuthentication
-from ..models import Role, School, Teacher, UserDocument
+from ..constants.role_permission import RolePermission
 from ..services.storage_service import StorageService
+from ..constants.role import Role as RoleConstant
 from ..middlewares.permissions import IsSuperUser
 from ..serializers import TeacherSerializer
-from ..constants.role import Role as RoleConstant
 
 class TeacherViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
@@ -22,7 +24,9 @@ class TeacherViewSet(viewsets.ViewSet):
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
-        elif self.action in ["approve_teacher", "fetch_teachers"]:
+        elif self.action in ["approve_teacher", "fetch_teachers", "add_customer", "fetch_customer_stat"]:
+            permission_classes = [IsAuthenticated]
+        else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
@@ -214,6 +218,149 @@ class TeacherViewSet(viewsets.ViewSet):
                 "status": status.HTTP_200_OK,
                 "message": "Pengajuan akun teacher berhasil di-approve.",
                 "data": serializer.data,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"], url_path="add-customer")
+    def add_customer(self, request):
+        try:
+            if not RolePermission.is_teacher(request.user):
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Hanya akun teacher yang dapat menambah customer.",
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            try:
+                teacher = Teacher.objects.select_related("mentor").get(user=request.user)
+            except Teacher.DoesNotExist:
+                return Response({
+                    "status": status.HTTP_404_NOT_FOUND,
+                    "message": "Profil teacher tidak ditemukan.",
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            buyer_name = (request.data.get("buyer_name") or "").strip()
+            quantity = request.data.get("quantity")
+            unit_price = request.data.get("unit_price")
+            line_total = request.data.get("line_total")
+            product_name = (request.data.get("product_name") or "").strip()
+            weight = request.data.get("weight")
+            buyer_reference = (request.data.get("buyer_reference") or "").strip()
+
+            if not buyer_name:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Field buyer_name wajib diisi.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if quantity is None:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Field quantity wajib diisi.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                quantity = int(quantity)
+                if quantity <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Field quantity harus berupa angka bulat lebih dari 0.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if unit_price is None and line_total is None:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Isi minimal unit_price atau line_total.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if unit_price is not None:
+                try:
+                    unit_price = int(unit_price)
+                    if unit_price < 0:
+                        raise ValueError
+                except (TypeError, ValueError):
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "Field unit_price harus berupa angka >= 0.",
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            if line_total is not None:
+                try:
+                    line_total = int(line_total)
+                    if line_total < 0:
+                        raise ValueError
+                except (TypeError, ValueError):
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "Field line_total harus berupa angka >= 0.",
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                line_total = quantity * unit_price
+
+            if weight in (None, ""):
+                weight = 0
+
+            order = MentorPersonalOrder.objects.create(
+                mentor=teacher.mentor,
+                teacher=teacher,
+                product_name=product_name,
+                weight=weight,
+                quantity=quantity,
+                unit_price=unit_price,
+                line_total=line_total,
+                buyer_type=MentorPersonalOrder.BuyerType.PEOPLE,
+                buyer_name=buyer_name,
+                buyer_reference=buyer_reference,
+            )
+
+            return Response({
+                "status": status.HTTP_201_CREATED,
+                "message": "Customer order berhasil ditambahkan.",
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"], url_path="fetch-statistic")
+    def fetch_statistic(self, request):
+        try:
+            if not RolePermission.is_teacher(request.user):
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Hanya akun teacher yang dapat mengakses statistik.",
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            try:
+                teacher = Teacher.objects.get(user=request.user)
+            except Teacher.DoesNotExist:
+                return Response({
+                    "status": status.HTTP_404_NOT_FOUND,
+                    "message": "Profil teacher tidak ditemukan.",
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            orders = MentorPersonalOrder.objects.filter(teacher=teacher)
+            total_profit = orders.aggregate(total=Sum("line_total"))["total"] or 0
+
+            distinct_named_customer = orders.exclude(buyer_name="").values("buyer_name").distinct().count()
+            unnamed_customer = orders.filter(buyer_name="").count()
+            total_customer = distinct_named_customer + unnamed_customer
+
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Statistik customer berhasil diambil.",
+                "data": {
+                    "total_profit": int(total_profit),
+                    "total_customer": int(total_customer),
+                },
             }, status=status.HTTP_200_OK)
 
         except Exception as e:

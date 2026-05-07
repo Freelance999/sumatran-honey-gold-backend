@@ -64,9 +64,9 @@ class UserDocumentAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'url')
 
 class MentorPersonalOrderAdmin(admin.ModelAdmin):
-    list_display = ('mentor', 'product_name', 'weight', 'quantity', 'line_total', 'buyer_type', 'school', 'buyer_reference', 'created_at')
-    list_filter = ('buyer_type', 'mentor')
-    search_fields = ('product_name', 'mentor__username', 'buyer_reference', 'school__name')
+    list_display = ('mentor', 'teacher', 'product_name', 'weight', 'quantity', 'unit_price', 'line_total', 'buyer_type', 'school', 'buyer_name', 'buyer_reference', 'created_at')
+    list_filter = ('buyer_type', 'mentor', 'teacher')
+    search_fields = ('product_name', 'mentor__username', 'teacher__user__username', 'buyer_name', 'buyer_reference', 'school__name')
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
