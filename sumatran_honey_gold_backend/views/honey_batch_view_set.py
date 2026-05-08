@@ -1,15 +1,17 @@
 import qrcode
 from io import BytesIO
+from django.conf import settings
 from django.db import transaction
 from django.utils.text import slugify
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
+from ..services.storage_service import StorageService
 from ..serializers import HoneyBatchSerializer, HoneyBottleSerializer, InventorySerializer
 from ..models import HoneyBatch, HoneyBottle, Inventory
 
@@ -91,27 +93,50 @@ class HoneyBatchViewSet(viewsets.ViewSet):
 
                 sequence_padding = max(2, len(str(quantity)))
 
+                bottle_payloads = []
+                qr_files = []
+
                 for index in range(1, quantity + 1):
                     sequence_number = last_sequence + index
                     serial = f"{serial_prefix}-{sequence_number:0{sequence_padding}d}"
 
-                    bottle = HoneyBottle.objects.create(
-                        honey_batch=honey_batch,
-                        serial_number=serial
-                    )
-
-                    qr_url = f"https://yourdomain.com/verify/{serial}"
-
+                    qr_url = f"{settings.BASE_URL_FE}/verify/{serial}"
                     qr = qrcode.make(qr_url)
 
                     buffer = BytesIO()
                     qr.save(buffer, format="PNG")
 
-                    bottle.qr_code.save(
-                        f"{serial}.png",
-                        ContentFile(buffer.getvalue()),
-                        save=True
+                    bottle_payloads.append({
+                        "serial_number": serial,
+                    })
+                    qr_files.append(
+                        SimpleUploadedFile(
+                            f"{serial}.png",
+                            buffer.getvalue(),
+                            content_type="image/png"
+                        )
                     )
+
+                storage_result = StorageService.upload_media(qr_files)
+                uploaded_qr_urls = storage_result.get("data", [])
+                if (
+                    storage_result.get("status") != status.HTTP_200_OK
+                    or len(uploaded_qr_urls) != len(bottle_payloads)
+                ):
+                    transaction.set_rollback(True)
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": storage_result.get("message") or "Failed to upload QR code images.",
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                HoneyBottle.objects.bulk_create([
+                    HoneyBottle(
+                        honey_batch=honey_batch,
+                        serial_number=payload["serial_number"],
+                        qr_code=uploaded_qr_urls[index],
+                    )
+                    for index, payload in enumerate(bottle_payloads)
+                ])
 
                 inventory, _ = Inventory.objects.get_or_create(
                     brand_id=brand_id,

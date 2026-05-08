@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'phone_number', 'date_joined')
@@ -68,6 +68,11 @@ class MentorPersonalOrderAdmin(admin.ModelAdmin):
     list_filter = ('buyer_type', 'mentor', 'teacher')
     search_fields = ('product_name', 'mentor__username', 'teacher__user__username', 'buyer_name', 'buyer_reference', 'school__name')
 
+class DistributionMissionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'year', 'target_quantity', 'created_at', 'updated_at')
+    list_filter = ('year', 'user')
+    search_fields = ('user__username', 'user__email')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
@@ -87,3 +92,4 @@ admin.site.register(Teacher, TeacherAdmin)
 admin.site.register(TeacherSchool, TeacherSchoolAdmin)
 admin.site.register(UserDocument, UserDocumentAdmin)
 admin.site.register(MentorPersonalOrder, MentorPersonalOrderAdmin)
+admin.site.register(DistributionMission, DistributionMissionAdmin)

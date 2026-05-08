@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission
 
 User = get_user_model()
 
@@ -131,3 +131,10 @@ class MentorPersonalOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = MentorPersonalOrder
         fields = ['id', 'mentor', 'mentor_id', 'teacher', 'teacher_id', 'product_name', 'weight', 'quantity', 'unit_price', 'line_total', 'buyer_type', 'school', 'school_id', 'buyer_name', 'buyer_reference', 'created_at', 'updated_at']
+
+
+class DistributionMissionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DistributionMission
+        fields = ['id', 'user', 'user_id', 'year', 'target_quantity', 'created_at', 'updated_at']

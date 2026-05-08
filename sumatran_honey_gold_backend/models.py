@@ -155,7 +155,7 @@ class HoneyBatch(models.Model):
     
 class HoneyBottle(models.Model):
     honey_batch = models.ForeignKey(HoneyBatch, related_name='honey_bottles', on_delete=models.CASCADE)
-    qr_code = models.ImageField(upload_to='images/', null=True, blank=True)
+    qr_code = models.URLField(max_length=500, null=True, blank=True)
     serial_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
@@ -285,6 +285,22 @@ class MentorPersonalOrder(models.Model):
     buyer_reference = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+class DistributionMission(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="distribution_missions", null=True, blank=True)
+    year = models.PositiveIntegerField()
+    target_quantity = models.PositiveBigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "year")
+        indexes = [
+            models.Index(fields=["user", "year"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.year}: {self.target_quantity}"
 
 class TeacherSchool(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="teacher_schools")

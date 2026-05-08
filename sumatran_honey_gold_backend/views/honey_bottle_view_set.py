@@ -8,11 +8,12 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
+from ..services.storage_service import StorageService
 from ..serializers import HoneyBottleSerializer
 from ..models import HoneyBottle
 
@@ -101,20 +102,30 @@ class HoneyBottleViewSet(viewsets.ViewSet):
                 qr_code_base64 = qr_code_base64.replace('data:image/png;base64,', '')
             
             qr_image_data = base64.b64decode(qr_code_base64)
-            qr_image = ContentFile(qr_image_data)
+            file_name = f"qr_{serial_number}.png"
+            qr_image = SimpleUploadedFile(
+                file_name,
+                qr_image_data,
+                content_type="image/png"
+            )
+            storage_result = StorageService.upload_media([qr_image])
+            uploaded_qr_urls = storage_result.get("data", [])
+            if storage_result.get("status") != status.HTTP_200_OK or not uploaded_qr_urls:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": storage_result.get("message") or "Failed to upload QR code image.",
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             data = {
                 'honey_batch': honey_batch_id,
-                'serial_number': serial_number
+                'serial_number': serial_number,
+                'qr_code': uploaded_qr_urls[0],
             }
             
             serializer = HoneyBottleSerializer(data=data)
 
             if serializer.is_valid():
                 honey_bottle = serializer.save()
-                file_name = f"qr_{serial_number}.png"
-                honey_bottle.qr_code.save(file_name, qr_image, save=False)
-                honey_bottle.save()
                 
                 return Response({
                     "status": status.HTTP_201_CREATED,
@@ -123,7 +134,7 @@ class HoneyBottleViewSet(viewsets.ViewSet):
                         "id": honey_bottle.id,
                         "honey_batch_id": honey_bottle.honey_batch.id,
                         "serial_number": honey_bottle.serial_number,
-                        "qr_code_url": request.build_absolute_uri(honey_bottle.qr_code.url) if honey_bottle.qr_code else None,
+                        "qr_code_url": honey_bottle.qr_code,
                         "created_at": honey_bottle.created_at,
                         "updated_at": honey_bottle.updated_at,
                     }

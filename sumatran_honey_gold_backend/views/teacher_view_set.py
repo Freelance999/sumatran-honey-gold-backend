@@ -330,7 +330,7 @@ class TeacherViewSet(viewsets.ViewSet):
                 "message": str(e),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=["post"], url_path="fetch-statistic")
+    @action(detail=False, methods=["get"], url_path="fetch-statistic")
     def fetch_statistic(self, request):
         try:
             if not RolePermission.is_teacher(request.user):
