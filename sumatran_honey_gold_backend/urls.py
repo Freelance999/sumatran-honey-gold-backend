@@ -9,6 +9,7 @@ from .views.honey_bottle_view_set import HoneyBottleViewSet
 from .views.certificate_view_set import CertificateViewSet
 from .views.honey_batch_view_set import HoneyBatchViewSet
 from .views.dashboard_view_set import DashboardViewSet
+from .views.customer_view_set import CustomerViewSet
 from .views.setting_view_set import SettingViewSet
 from .views.weather_view_set import WeatherViewSet
 from .views.teacher_view_set import TeacherViewSet
@@ -24,6 +25,7 @@ router.register(r"honey-bottle", HoneyBottleViewSet, basename="honey-bottle")
 router.register(r"certificate", CertificateViewSet, basename="certificate")
 router.register(r"honey-batch", HoneyBatchViewSet, basename="honey-batch")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
+router.register(r"customer", CustomerViewSet, basename="customer")
 router.register(r"setting", SettingViewSet, basename="setting")
 router.register(r"weather", WeatherViewSet, basename="weather")
 router.register(r"teacher", TeacherViewSet, basename="teacher")

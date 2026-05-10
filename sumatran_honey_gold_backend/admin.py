@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, HoneyProduct, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission, CustomerAddress, Size
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'phone_number', 'date_joined')
@@ -12,7 +12,12 @@ class LiveHarvestAdmin(admin.ModelAdmin):
     list_display = ('client', 'block', 'youtube_video_id', 'youtube_stream_id', 'start_time', 'end_time', 'latitude', 'longitude', 'status', 'weather_temperature', 'weather_humidity', 'weather_wind_speed', 'weather_uv', 'weather_rain', 'harvester_name', 'cameraman', 'water_prediction', 'selfie_photo', 'area_photo', 'sky_photo', 'water_prediction_photo', 'created_at', 'updated_at')
 
 class HoneyBatchAdmin(admin.ModelAdmin):
-    list_display = ('id', 'live_harvest', 'brand', 'quantity', 'weight', 'status', 'created_at', 'updated_at')
+    list_display = ('id', 'live_harvest', 'brand', 'honey_product', 'quantity', 'weight', 'status', 'created_at', 'updated_at')
+
+class HoneyProductAdmin(admin.ModelAdmin):
+    list_display = ('id', 'brand', 'name', 'badge', 'bottle_size_ml', 'price', 'display_order', 'created_at', 'updated_at')
+    list_filter = ('brand', 'bottle_size_ml')
+    search_fields = ('name', 'badge', 'brand__name')
 
 class HoneyBottleAdmin(admin.ModelAdmin):
     list_display = ('honey_batch', 'qr_code', 'serial_number', 'created_at', 'updated_at')
@@ -73,10 +78,18 @@ class DistributionMissionAdmin(admin.ModelAdmin):
     list_filter = ('year', 'user')
     search_fields = ('user__username', 'user__email')
 
+class CustomerAddressAdmin(admin.ModelAdmin):
+    list_display = ('name', 'source', 'created_at', 'updated_at')
+    search_fields = ('name', 'address')
+
+class SizeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ml', 'created_at', 'updated_at')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
 admin.site.register(HoneyBatch, HoneyBatchAdmin)
+admin.site.register(HoneyProduct, HoneyProductAdmin)
 admin.site.register(HoneyBottle, HoneyBottleAdmin)
 admin.site.register(Certificate, CertificateAdmin)
 admin.site.register(WeatherObservation, WeatherObservationAdmin)
@@ -93,3 +106,5 @@ admin.site.register(TeacherSchool, TeacherSchoolAdmin)
 admin.site.register(UserDocument, UserDocumentAdmin)
 admin.site.register(MentorPersonalOrder, MentorPersonalOrderAdmin)
 admin.site.register(DistributionMission, DistributionMissionAdmin)
+admin.site.register(CustomerAddress, CustomerAddressAdmin)
+admin.site.register(Size, SizeAdmin)

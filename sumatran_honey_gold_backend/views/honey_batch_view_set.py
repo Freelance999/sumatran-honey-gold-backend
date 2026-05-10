@@ -13,7 +13,7 @@ from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
 from ..services.storage_service import StorageService
 from ..serializers import HoneyBatchSerializer, HoneyBottleSerializer, InventorySerializer
-from ..models import HoneyBatch, HoneyBottle, Inventory
+from ..models import HoneyBatch, HoneyBottle, HoneyProduct, Inventory
 
 class HoneyBatchViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
@@ -31,14 +31,61 @@ class HoneyBatchViewSet(viewsets.ViewSet):
     def create(self, request):
         try:
             bottling_id = request.data.get("bottling_id")
+            honey_product_id = request.data.get("honey_product_id")
             brand_id = request.data.get("brand_id")
             quantity = request.data.get("quantity")
             bottle_size_ml = request.data.get("bottle_size_ml")
 
-            if not all([bottling_id, brand_id, quantity, bottle_size_ml]):
+            if not all([bottling_id, honey_product_id, quantity]):
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
-                    "message": "bottling_id, brand_id, quantity, and bottle_size_ml are required."
+                    "message": "bottling_id, honey_product_id, and quantity are required."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                honey_product_id = int(honey_product_id)
+            except (TypeError, ValueError):
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "honey_product_id must be a valid integer."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            product = HoneyProduct.objects.filter(id=honey_product_id).first()
+            if not product:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "honey_product_id is invalid."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if brand_id:
+                try:
+                    brand_id = int(brand_id)
+                except (TypeError, ValueError):
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "brand_id must be a valid integer."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                if product.brand_id and brand_id != product.brand_id:
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "brand_id does not match the selected product."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                brand_id = product.brand_id
+
+            bottle_size_ml = bottle_size_ml or product.bottle_size_ml
+
+            if not brand_id:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "brand_id is required when the selected product has no brand."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not bottle_size_ml:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "bottle_size_ml is required when the selected product has no bottle size."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             try:
@@ -63,10 +110,17 @@ class HoneyBatchViewSet(viewsets.ViewSet):
                     "message": "bottle_size_ml must be a valid integer."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            if product.bottle_size_ml and bottle_size_ml != product.bottle_size_ml:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "bottle_size_ml does not match the selected product."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             with transaction.atomic():
                 honey_batch = HoneyBatch.objects.create(
                     bottling_id=bottling_id,
                     brand_id=brand_id,
+                    honey_product=product,
                     quantity=quantity
                 )
 

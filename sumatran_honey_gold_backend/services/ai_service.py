@@ -1,13 +1,16 @@
 import re
 import json
 from google import genai
+from google.genai import types
 from django.conf import settings
 from typing import Optional, Dict, Any
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-3-flash-preview"
 
 class AiService:
+    # DASHBOARD
+
     @staticmethod
     def build_prompt(weather, live, batches):
         return f"""
@@ -118,6 +121,7 @@ class AiService:
 
         return alerts
 
+    # MENTOR
     @staticmethod
     def build_mentor_analysis_prompt(statistics: dict) -> str:
         return f"""
@@ -185,3 +189,66 @@ class AiService:
             if key not in parsed or not isinstance(parsed[key], str):
                 parsed[key] = fallback[key]
         return parsed
+
+    # CUSTOMER
+    @staticmethod
+    def build_customer_address_image_prompt() -> str:
+        return """
+        Anda adalah AI ekstraksi data customer dari screenshot chat WhatsApp.
+
+        Tugas:
+        - Baca isi gambar.
+        - Ambil nama customer dan alamat lengkap pengiriman.
+        - Abaikan nama admin, nama toko, timestamp, tombol UI WhatsApp, dan teks yang bukan data customer.
+        - Jika data tidak ditemukan, isi string kosong.
+
+        ATURAN KETAT:
+        - Output HARUS berupa JSON valid.
+        - TANPA markdown.
+        - TANPA penjelasan tambahan.
+        - HANYA objek JSON.
+
+        FORMAT:
+        {
+            "name": "string",
+            "address": "string",
+            "confidence": 0.0,
+            "notes": "string singkat jika ada ketidakpastian"
+        }
+        """
+
+    @staticmethod
+    def extract_customer_address_from_image(uploaded_file) -> dict:
+        uploaded_file.seek(0)
+        image_bytes = uploaded_file.read()
+        mime_type = getattr(uploaded_file, "content_type", None) or "image/jpeg"
+
+        prompt = AiService.build_customer_address_image_prompt()
+        image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=[prompt, image_part],
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+        parsed = AiService._parse_json_object(response.text)
+        if not isinstance(parsed, dict):
+            return {
+                "name": "",
+                "address": "",
+                "confidence": 0,
+                "notes": "AI tidak dapat membaca data dari gambar.",
+            }
+
+        try:
+            confidence = float(parsed.get("confidence") or 0)
+        except (TypeError, ValueError):
+            confidence = 0
+
+        return {
+            "name": str(parsed.get("name") or "").strip(),
+            "phone_number": str(parsed.get("phone_number") or "").strip(),
+            "address": str(parsed.get("address") or "").strip(),
+            "confidence": confidence,
+            "notes": str(parsed.get("notes") or "").strip(),
+        }

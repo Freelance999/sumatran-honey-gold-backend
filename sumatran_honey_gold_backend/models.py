@@ -100,10 +100,10 @@ class LiveHarvest(models.Model):
     harvester_name = models.CharField(max_length=100, null=True, blank=True)
     cameraman = models.CharField(max_length=100, null=True, blank=True)
     water_prediction = models.FloatField(null=True, blank=True)
-    selfie_photo = models.ImageField(upload_to='images/selfie/', null=True, blank=True)
-    area_photo = models.ImageField(upload_to='images/area/', null=True, blank=True)
-    sky_photo = models.ImageField(upload_to='images/sky/', null=True, blank=True)
-    water_prediction_photo = models.ImageField(upload_to='images/water_prediction/', null=True, blank=True)
+    selfie_photo = models.URLField(max_length=1000, null=True, blank=True)
+    area_photo = models.URLField(max_length=1000, null=True, blank=True)
+    sky_photo = models.URLField(max_length=1000, null=True, blank=True)
+    water_prediction_photo = models.URLField(max_length=1000, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -131,7 +131,7 @@ class Bottling(models.Model):
 
 class Brand(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
-    logo = models.ImageField(upload_to='brands/', null=True, blank=True)
+    logo = models.URLField(max_length=1000, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -139,10 +139,30 @@ class Brand(models.Model):
     def __str__(self):
         return f"{self.name}"
 
+class HoneyProduct(models.Model):
+    brand = models.ForeignKey(Brand, related_name="honey_products", on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=120, null=True, blank=True)
+    badge = models.CharField(max_length=80, null=True, blank=True)
+    bottle_size_ml = models.IntegerField(null=True, blank=True)
+    price = models.PositiveBigIntegerField(null=True, blank=True)
+    photo = models.URLField(max_length=1000, null=True, blank=True)
+    integrity_text = models.TextField(null=True, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("brand", "bottle_size_ml", "name")
+        ordering = ["display_order", "price", "id"]
+
+    def __str__(self):
+        return f"{self.brand} - {self.name} ({self.bottle_size_ml} ml)"
+
 class HoneyBatch(models.Model):
     live_harvest = models.ForeignKey(LiveHarvest, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
     bottling = models.ForeignKey(Bottling, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
     brand = models.ForeignKey(Brand, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    honey_product = models.ForeignKey(HoneyProduct, related_name="honey_batches", on_delete=models.SET_NULL, null=True, blank=True)
     batch_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     quantity = models.IntegerField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
@@ -309,3 +329,37 @@ class TeacherSchool(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
         unique_together = ("teacher", "school")
+
+class CustomerAddress(models.Model):
+    class Source(models.TextChoices):
+        MANUAL = "manual", "manual"
+        AI = "ai", "ai"
+
+    name = models.CharField(max_length=255, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
+    confidence = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["source"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} - {self.address[:50]}"
+
+class Size(models.Model):
+    ml = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["ml"]
+
+    def __str__(self):
+        return f"{self.ml} ml)"
