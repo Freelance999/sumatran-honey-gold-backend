@@ -1,4 +1,5 @@
 import qrcode
+import re
 from io import BytesIO
 from django.conf import settings
 from django.db import transaction
@@ -13,7 +14,18 @@ from ..middlewares.authentications import BearerTokenAuthentication
 from ..middlewares.permissions import IsSuperUser
 from ..services.storage_service import StorageService
 from ..serializers import HoneyBatchSerializer, HoneyBottleSerializer, InventorySerializer
-from ..models import HoneyBatch, HoneyBottle, HoneyProduct, Inventory
+from ..models import HoneyBatch, HoneyBottle, HoneyProduct, Inventory, Brand
+
+
+def build_brand_abbreviation(brand_name):
+    words = re.findall(r"[A-Za-z0-9]+", (brand_name or "").strip())
+    if not words:
+        return "NO-BRAND"
+
+    if len(words) == 1:
+        return words[0][:4].upper()
+
+    return "".join(word[:2].upper() for word in words)
 
 class HoneyBatchViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
@@ -82,6 +94,13 @@ class HoneyBatchViewSet(viewsets.ViewSet):
                     "message": "brand_id is required when the selected product has no brand."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            brand = product.brand if product.brand_id == brand_id else Brand.objects.filter(id=brand_id).first()
+            if not brand:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "brand_id is invalid."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             if not bottle_size_ml:
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
@@ -128,9 +147,9 @@ class HoneyBatchViewSet(viewsets.ViewSet):
                 if honey_batch.bottling and honey_batch.bottling.raw_stock and honey_batch.bottling.raw_stock.live_harvest:
                     block = honey_batch.bottling.raw_stock.live_harvest.block
 
-                block_code = slugify((block.code if block and block.code else "unknown").strip())
-                block_name = slugify((block.name if block and block.name else "block").strip())
-                serial_prefix = f"{block_code}-{block_name}"
+                block_code = slugify((block.code if block and block.code else "unknown").strip()).upper()
+                brand_abbreviation = build_brand_abbreviation(brand.name)
+                serial_prefix = f"B{block_code}-{brand_abbreviation}"
 
                 existing_serials = HoneyBottle.objects.filter(
                     serial_number__startswith=f"{serial_prefix}-"
@@ -145,7 +164,7 @@ class HoneyBatchViewSet(viewsets.ViewSet):
                     except (TypeError, ValueError, AttributeError):
                         continue
 
-                sequence_padding = max(2, len(str(quantity)))
+                sequence_padding = max(3, len(str(last_sequence + quantity)))
 
                 bottle_payloads = []
                 qr_files = []

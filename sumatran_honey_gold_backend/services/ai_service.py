@@ -252,3 +252,72 @@ class AiService:
             "confidence": confidence,
             "notes": str(parsed.get("notes") or "").strip(),
         }
+
+    @staticmethod
+    def build_station_monitoring_prompt(station_monitorings: list) -> str:
+        return f"""
+        Anda adalah Habibie AI untuk monitoring kualitas madu, mikroklimat lahan, dan vitalitas koloni lebah.
+
+        Tugas:
+        - Buat analisis singkat untuk 3 kartu station monitoring berdasarkan data JSON berikut.
+        - Tulis dalam Bahasa Indonesia.
+        - Setiap value cukup 1 kalimat, maksimal 140 karakter.
+        - Hindari menyebut angka mentah jika tidak menambah insight.
+        - Gunakan nada profesional, ringkas, dan meyakinkan.
+
+        ATURAN KETAT:
+        - Output HARUS berupa JSON valid.
+        - TANPA markdown.
+        - TANPA penjelasan tambahan.
+        - HANYA objek JSON dengan tepat 3 key berikut.
+
+        FORMAT:
+        {{
+            "purity_prediction": "string",
+            "land_temperature": "string",
+            "colony_vitality": "string"
+        }}
+
+        KONTEKS FIELD DATA:
+        - purity_prediction: main_value adalah prediksi kemurnian (%), first_value enzim diastase, second_value moisture content (%).
+        - land_temperature: main_value suhu lahan (°C), first_value kelembapan (%), second_value kualitas udara per 100.
+        - colony_vitality: main_value null, first_value frekuensi suara sarang (Hz), second_value aktivitas terbang (u/min).
+
+        DATA STATION MONITORING:
+        {json.dumps(station_monitorings, ensure_ascii=False)}
+        """
+
+    @staticmethod
+    def analyze_station_monitoring(station_monitorings: list) -> dict:
+        fallback = {
+            "purity_prediction": "Analisis kemurnian madu belum dapat dihasilkan saat ini.",
+            "land_temperature": "Analisis mikroklimat lahan belum dapat dihasilkan saat ini.",
+            "colony_vitality": "Analisis vitalitas koloni belum dapat dihasilkan saat ini.",
+        }
+
+        try:
+            prompt = AiService.build_station_monitoring_prompt(station_monitorings)
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json"),
+            )
+            text = response.text
+        except Exception:
+            return fallback
+
+        parsed = AiService._parse_json_object(text)
+        if not isinstance(parsed, dict):
+            return fallback
+
+        for key in ("purity_prediction", "land_temperature", "colony_vitality"):
+            if key not in parsed or not isinstance(parsed[key], str) or not parsed[key].strip():
+                parsed[key] = fallback[key]
+            else:
+                parsed[key] = parsed[key].strip()
+
+        return {
+            "purity_prediction": parsed["purity_prediction"],
+            "land_temperature": parsed["land_temperature"],
+            "colony_vitality": parsed["colony_vitality"],
+        }

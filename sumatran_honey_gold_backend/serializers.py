@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, HoneyProduct, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission, CustomerAddress, Size
+from .models import Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, HoneyProduct, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission, CustomerAddress, Size, General
 
 User = get_user_model()
 
@@ -160,3 +160,9 @@ class SizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Size
         fields = ['id', 'ml', 'created_at', 'updated_at']
+
+class GeneralSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = General
+        fields = ['id', 'route', 'category', 'type', 'url', 'created_at', 'updated_at']

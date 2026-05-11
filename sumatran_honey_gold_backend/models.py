@@ -363,3 +363,22 @@ class Size(models.Model):
 
     def __str__(self):
         return f"{self.ml} ml)"
+
+class General(models.Model):
+    route = models.CharField(max_length=255, null=True, blank=True)
+    category = models.CharField(max_length=255, null=True, blank=True)
+    type = models.CharField(max_length=255, null=True, blank=True)
+    url = models.URLField(max_length=1000, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["route"]),
+            models.Index(fields=["type"]),
+        ]
+        ordering = ["route"]
+
+    def __str__(self):
+        return f"{self.route}"

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, HoneyProduct, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission, CustomerAddress, Size
+from .models import CustomUser, Client, LiveHarvest, HoneyBatch, HoneyBottle, Certificate, WeatherObservation, Block, Setting, Role, RawStock, Bottling, Brand, HoneyProduct, Inventory, School, Teacher, TeacherSchool, UserDocument, MentorPersonalOrder, DistributionMission, CustomerAddress, Size, General
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_superuser', 'is_staff', 'is_active', 'role', 'phone_number', 'date_joined')
@@ -85,6 +85,10 @@ class CustomerAddressAdmin(admin.ModelAdmin):
 class SizeAdmin(admin.ModelAdmin):
     list_display = ('id', 'ml', 'created_at', 'updated_at')
 
+class GeneralAdmin(admin.ModelAdmin):
+    list_display = ('route', 'category', 'type', 'url', 'created_at', 'updated_at')
+    search_fields = ('route', 'type')
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(LiveHarvest, LiveHarvestAdmin)
@@ -108,3 +112,4 @@ admin.site.register(MentorPersonalOrder, MentorPersonalOrderAdmin)
 admin.site.register(DistributionMission, DistributionMissionAdmin)
 admin.site.register(CustomerAddress, CustomerAddressAdmin)
 admin.site.register(Size, SizeAdmin)
+admin.site.register(General, GeneralAdmin)
