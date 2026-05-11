@@ -1,6 +1,18 @@
 import requests
 from django.conf import settings
+from urllib.parse import urlsplit, urlunsplit, quote
 
+def encode_url(url: str) -> str:
+    parsed = urlsplit(url)
+    encoded_path = quote(parsed.path)
+
+    return urlunsplit((
+        parsed.scheme,
+        parsed.netloc,
+        encoded_path,
+        parsed.query,
+        parsed.fragment,
+    ))
 
 class StorageService:
     @staticmethod
@@ -38,10 +50,17 @@ class StorageService:
         try:
             response = requests.post(endpoint, files=multipart_files, timeout=30)
             payload = response.json()
+            raw_data = payload.get("data", [])
+
+            encoded_data = [
+                encode_url(url)
+                for url in raw_data
+            ]
+
             return {
                 "status": payload.get("status", response.status_code),
                 "message": payload.get("message", ""),
-                "data": payload.get("data", []),
+                "data": encoded_data,
             }
         except requests.RequestException as exc:
             return {
