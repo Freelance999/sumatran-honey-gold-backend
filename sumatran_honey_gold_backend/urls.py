@@ -7,23 +7,31 @@ from .views.authentication_view_set import AuthenticationViewSet
 from .views.live_harvest_view_set import LiveHarvestViewSet
 from .views.honey_bottle_view_set import HoneyBottleViewSet
 from .views.certificate_view_set import CertificateViewSet
+from .views.honey_batch_view_set import HoneyBatchViewSet
 from .views.dashboard_view_set import DashboardViewSet
+from .views.customer_view_set import CustomerViewSet
 from .views.setting_view_set import SettingViewSet
 from .views.weather_view_set import WeatherViewSet
+from .views.teacher_view_set import TeacherViewSet
 from .views.client_view_set import ClientViewSet
+from .views.mentor_view_set import MentorViewSet
 from .views.user_view_set import UserViewSet
 
 router = DefaultRouter()
 
-router.register(r"user", UserViewSet, basename="user")
 router.register(r"authentication", AuthenticationViewSet, basename="authentication")
 router.register(r"live-harvest", LiveHarvestViewSet, basename="live-harvest")
-router.register(r"client", ClientViewSet, basename="client")
 router.register(r"honey-bottle", HoneyBottleViewSet, basename="honey-bottle")
 router.register(r"certificate", CertificateViewSet, basename="certificate")
-router.register(r"weather", WeatherViewSet, basename="weather")
+router.register(r"honey-batch", HoneyBatchViewSet, basename="honey-batch")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
+router.register(r"customer", CustomerViewSet, basename="customer")
 router.register(r"setting", SettingViewSet, basename="setting")
+router.register(r"weather", WeatherViewSet, basename="weather")
+router.register(r"teacher", TeacherViewSet, basename="teacher")
+router.register(r"client", ClientViewSet, basename="client")
+router.register(r"mentor", MentorViewSet, basename="mentor")
+router.register(r"user", UserViewSet, basename="user")
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -3,10 +3,37 @@ import subprocess
 import threading
 
 class FFmpegService:
+    RTSP_INPUT_URL = "rtsp://localhost:8554/liveHarvest"
+
     def __init__(self):
         self.ffmpeg_running = False
         self.ffmpeg_process = None
         self.ffmpeg_thread = None
+
+    def wait_until_input_ready(self, timeout_seconds=30):
+        deadline = time.time() + timeout_seconds
+
+        while self.ffmpeg_running and time.time() < deadline:
+            probe_cmd = [
+                "ffprobe",
+                "-v", "error",
+                "-rtsp_transport", "tcp",
+                "-show_entries", "stream=codec_type",
+                "-of", "default=noprint_wrappers=1",
+                self.RTSP_INPUT_URL,
+            ]
+            result = subprocess.run(
+                probe_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            if result.returncode == 0:
+                return True
+
+            print("Waiting for MediaMTX publisher on liveHarvest...")
+            time.sleep(1)
+
+        return False
     
     def start_streaming(self, youtube_rtmp):
         self.ffmpeg_running = True
@@ -14,18 +41,33 @@ class FFmpegService:
         def worker():
             while self.ffmpeg_running:
                 try:
+                    if not self.wait_until_input_ready():
+                        if self.ffmpeg_running:
+                            print("MediaMTX publisher is not ready yet")
+                        continue
+
                     cmd = [
                         "ffmpeg",
-                        "-i", "rtsp://localhost:8554/liveHarvest",
-                        # "-f", "lavfi",
-                        # "-i", "anullsrc",
-                        "-c:v", "copy",
-                        "-c:a", "aac",
-                        "-ar", "44100",
-                        "-b:a", "128k",
+                        "-hide_banner",
+                        "-loglevel", "info",
+                        "-fflags", "+genpts",
+                        "-rtsp_transport", "tcp",
+                        "-i", self.RTSP_INPUT_URL,
                         "-map", "0:v:0",
                         "-map", "0:a:0?",
-                        # "-shortest",
+                        "-c:v", "libx264",
+                        "-preset", "veryfast",
+                        "-tune", "zerolatency",
+                        "-pix_fmt", "yuv420p",
+                        "-profile:v", "main",
+                        "-b:v", "2500k",
+                        "-maxrate", "2500k",
+                        "-bufsize", "5000k",
+                        "-g", "60",
+                        "-c:a", "aac",
+                        "-ar", "44100",
+                        "-ac", "2",
+                        "-b:a", "128k",
                         "-f", "flv",
                         youtube_rtmp
                     ]

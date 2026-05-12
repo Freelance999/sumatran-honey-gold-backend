@@ -5,18 +5,20 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from ..middlewares.authentications import BearerTokenAuthentication
+from ..services.weather_service import WeatherService
 from ..middlewares.permissions import IsSuperUser
 
 api_key = settings.WUNDERGROUND_API_KEY
 station_id = settings.STATION_ID
 geocode = f"{settings.LATITUDE},{settings.LONGITUDE}"
 openweathermap_api_key = settings.OPENWEATHERMAP_API_KEY
+weather_service = WeatherService()
 
 class WeatherViewSet(viewsets.ViewSet):
     authentication_classes = [BearerTokenAuthentication]
 
     def get_permissions(self):
-        if self.action in ["fetch_forecasts", "fetch_weather_station"]:
+        if self.action in ["fetch_forecasts", "fetch_weather_station", "fetch_weather"]:
             permission_classes = [AllowAny]
         elif self.action in []:
             permission_classes = [IsSuperUser]
@@ -88,6 +90,25 @@ class WeatherViewSet(viewsets.ViewSet):
                 "status": status.HTTP_200_OK,
                 "message": "Weather data retrieved successfully",
                 "data": weather_data,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["post"], url_path="fetch-weather")
+    def fetch_weather(self, request):
+        try:
+            request_latitude = request.data.get("latitude")
+            request_longitude = request.data.get("longitude")
+            weather = weather_service.get_weather(request_latitude, request_longitude)
+            
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Weather data today retrieved successfully",
+                "data": weather,
             }, status=status.HTTP_200_OK)
 
         except Exception as e:

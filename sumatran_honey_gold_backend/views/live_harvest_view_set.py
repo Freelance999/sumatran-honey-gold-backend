@@ -1,3 +1,4 @@
+import base64
 import datetime
 from django.utils import timezone
 from googleapiclient.discovery import build
@@ -12,9 +13,10 @@ from ..middlewares.authentications import BearerTokenAuthentication
 from ..services.youtube_client_service import YouTubeClient
 from ..services.weather_service import WeatherService
 from ..services.ffmpeg_service import FFmpegService
+from ..services.storage_service import StorageService
 from ..middlewares.permissions import IsSuperUser
 from ..serializers import LiveHarvestSerializer
-from ..models import LiveHarvest
+from ..models import LiveHarvest, Block
 
 ffmpeg_service = FFmpegService()
 weather_service = WeatherService()
@@ -36,6 +38,40 @@ class LiveHarvestViewSet(viewsets.ViewSet):
         try:
             latitude = request.data.get("latitude")
             longitude = request.data.get("longitude")
+            block_id = request.data.get("block_id")
+            harvester_name = request.data.get("harvester_name")
+            cameraman = request.data.get("cameraman")
+            water_prediction = request.data.get("water_prediction")
+            photo_field_map = {
+                1: "selfie_photo",
+                2: "area_photo",
+                3: "sky_photo",
+                4: "water_prediction_photo"
+            }
+            photo_files = []
+            photo_field_names = []
+
+            files = request.FILES.getlist("files")
+            if files:
+                photo_files = files[:len(photo_field_map)]
+                photo_field_names = list(photo_field_map.values())[:len(photo_files)]
+            else:
+                for i in range(4):
+                    id_key = f"photo_list[{i}][id]"
+                    file_key = f"photo_list[{i}][photo]"
+                    pid = request.data.get(id_key)
+                    file = request.FILES.get(file_key)
+                    print(f"photo_list 0 {file_key}")
+                    print(f"photo_list 1 {file_key}")
+                    if pid and file:
+                        try:
+                            pid = int(pid)
+                        except (TypeError, ValueError):
+                            continue
+                        if pid in photo_field_map:
+                            photo_files.append(file)
+                            photo_field_names.append(photo_field_map[pid])
+
 
             if LiveHarvest.objects.filter(status="LIVE").exists():
                 return Response({
@@ -45,12 +81,44 @@ class LiveHarvestViewSet(viewsets.ViewSet):
 
             youtube = YouTubeClient.get_client()
             start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            weather = weather_service.get_weather(latitude, longitude)
+            weather_temperature = weather["temperature"]
+            
+            block = Block.objects.filter(id=block_id).first()
+            if not block:
+                return Response({
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "message": "Block tidak ditemukan.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            uploaded_urls = []
+            if photo_files:
+                upload_response = StorageService.upload_media(photo_files)
+                try:
+                    upload_status = int(upload_response.get("status"))
+                except (TypeError, ValueError):
+                    upload_status = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+                if upload_status != status.HTTP_200_OK:
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": upload_response.get("message") or "Gagal upload file ke storage.",
+                        "data": upload_response.get("data", []),
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                uploaded_urls = upload_response.get("data") or []
+                if len(uploaded_urls) < len(photo_files):
+                    return Response({
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "message": "Jumlah URL dari storage tidak sesuai dengan jumlah file yang diupload.",
+                        "data": uploaded_urls,
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
             broadcast = youtube.liveBroadcasts().insert(
                 part="snippet,status,contentDetails",
                 body={
                     "snippet": {
-                        "title": "Live Panen Madu",
+                        "title": f"Live Panen Blok {block.code} - Suhu Optimal {weather_temperature}°C",
                         "scheduledStartTime": start_time
                     },
                     "status": {
@@ -86,12 +154,13 @@ class LiveHarvestViewSet(viewsets.ViewSet):
             ingestion_address = stream["cdn"]["ingestionInfo"]["ingestionAddress"]
             youtube_rtmp = f"{ingestion_address}/{stream_key}"
 
-            weather = weather_service.get_weather(latitude, longitude)
-            weather_temperature = weather["temperature"]
             weather_humidity = weather["humidity"]
             weather_wind_speed = weather["wind_speed"]
+            weather_uv = weather["uv"]
+            weather_rain = weather["rain"]
 
             data = {
+                "block_id": block_id,
                 "youtube_video_id": broadcast["id"],
                 "youtube_stream_id": stream["id"],
                 "start_time": timezone.now(),
@@ -100,8 +169,16 @@ class LiveHarvestViewSet(viewsets.ViewSet):
                 "status": "LIVE",
                 "weather_temperature": weather_temperature,
                 "weather_humidity": weather_humidity,
-                "weather_wind_speed": weather_wind_speed
+                "weather_wind_speed": weather_wind_speed,
+                "weather_uv": weather_uv,
+                "weather_rain": weather_rain,
+                "harvester_name": harvester_name,
+                "cameraman": cameraman,
+                "water_prediction": water_prediction
             }
+
+            for field_name, url in zip(photo_field_names, uploaded_urls):
+                data[field_name] = url
 
             serializer = LiveHarvestSerializer(data=data)
             if serializer.is_valid():

@@ -51,6 +51,12 @@ class AuthenticationViewSet(viewsets.ViewSet):
                     "message": "User not found"
                 }, status=status.HTTP_404_NOT_FOUND)
             
+            if not user.is_active:
+                return Response({
+                    "status": status.HTTP_403_FORBIDDEN,
+                    "message": "Akun ini masih dalam proses verifikasi pengajuan"
+                }, status=status.HTTP_403_FORBIDDEN)
+
             if not user.check_password(password):
                 return Response({
                     "status": status.HTTP_400_BAD_REQUEST,
@@ -59,12 +65,6 @@ class AuthenticationViewSet(viewsets.ViewSet):
             
             user.last_login = now()
             user.save(update_fields=['last_login'])
-
-            if not user.is_active:
-                return Response({
-                    "status": status.HTTP_403_FORBIDDEN,
-                    "message": "User account is disabled"
-                }, status=status.HTTP_403_FORBIDDEN)
             
             access = UserToken.objects.create(user=user)
             refresh = RefreshToken.objects.create(user=user)

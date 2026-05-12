@@ -1,12 +1,16 @@
 import re
 import json
 from google import genai
+from google.genai import types
 from django.conf import settings
+from typing import Optional, Dict, Any
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-3-flash-preview"
 
 class AiService:
+    # DASHBOARD
+
     @staticmethod
     def build_prompt(weather, live, batches):
         return f"""
@@ -116,3 +120,204 @@ class AiService:
             })
 
         return alerts
+
+    # MENTOR
+    @staticmethod
+    def build_mentor_analysis_prompt(statistics: dict) -> str:
+        return f"""
+        Anda adalah asisten analitik untuk dashboard mentor penjualan madu.
+
+        Tugas: berikan 3 ringkasan naratif singkat dalam Bahasa Indonesia berdasarkan data JSON berikut.
+        Satu paragraf per area; gaya profesional, positif, dan actionable.
+
+        ATURAN KETAT:
+        - Output HARUS berupa JSON valid
+        - TANPA markdown
+        - TANPA penjelasan di luar JSON
+        - HANYA objek JSON dengan tepat 3 key berikut (string values):
+
+        FORMAT:
+        {{
+        "mentor_commission": "string",
+        "mentor_income": "string",
+        "mentor_network": "string"
+        }}
+
+        DATA STATISTIK:
+        {json.dumps(statistics, ensure_ascii=False)}
+        """
+
+    @staticmethod
+    def _parse_json_object(text: str) -> Optional[Dict[str, Any]]:
+        if not text:
+            return None
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(text[start : end + 1])
+            except Exception:
+                return None
+        return None
+
+    @staticmethod
+    def analyze_mentor_statistics(statistics: dict) -> dict:
+        fallback = {
+            "mentor_commission": "Analisis komisi mentor tidak dapat dihasilkan saat ini.",
+            "mentor_income": "Analisis penjualan pribadi tidak dapat dihasilkan saat ini.",
+            "mentor_network": "Analisis jaringan tidak dapat dihasilkan saat ini.",
+        }
+        try:
+            prompt = AiService.build_mentor_analysis_prompt(statistics)
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+            )
+            text = response.text
+        except Exception:
+            return fallback
+
+        parsed = AiService._parse_json_object(text)
+        if not isinstance(parsed, dict):
+            return fallback
+
+        for key in ("mentor_commission", "mentor_income", "mentor_network"):
+            if key not in parsed or not isinstance(parsed[key], str):
+                parsed[key] = fallback[key]
+        return parsed
+
+    # CUSTOMER
+    @staticmethod
+    def build_customer_address_image_prompt() -> str:
+        return """
+        Anda adalah AI ekstraksi data customer dari screenshot chat WhatsApp.
+
+        Tugas:
+        - Baca isi gambar.
+        - Ambil nama customer dan alamat lengkap pengiriman.
+        - Abaikan nama admin, nama toko, timestamp, tombol UI WhatsApp, dan teks yang bukan data customer.
+        - Jika data tidak ditemukan, isi string kosong.
+
+        ATURAN KETAT:
+        - Output HARUS berupa JSON valid.
+        - TANPA markdown.
+        - TANPA penjelasan tambahan.
+        - HANYA objek JSON.
+
+        FORMAT:
+        {
+            "name": "string",
+            "address": "string",
+            "confidence": 0.0,
+            "notes": "string singkat jika ada ketidakpastian"
+        }
+        """
+
+    @staticmethod
+    def extract_customer_address_from_image(uploaded_file) -> dict:
+        uploaded_file.seek(0)
+        image_bytes = uploaded_file.read()
+        mime_type = getattr(uploaded_file, "content_type", None) or "image/jpeg"
+
+        prompt = AiService.build_customer_address_image_prompt()
+        image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=[prompt, image_part],
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+        parsed = AiService._parse_json_object(response.text)
+        if not isinstance(parsed, dict):
+            return {
+                "name": "",
+                "address": "",
+                "confidence": 0,
+                "notes": "AI tidak dapat membaca data dari gambar.",
+            }
+
+        try:
+            confidence = float(parsed.get("confidence") or 0)
+        except (TypeError, ValueError):
+            confidence = 0
+
+        return {
+            "name": str(parsed.get("name") or "").strip(),
+            "phone_number": str(parsed.get("phone_number") or "").strip(),
+            "address": str(parsed.get("address") or "").strip(),
+            "confidence": confidence,
+            "notes": str(parsed.get("notes") or "").strip(),
+        }
+
+    @staticmethod
+    def build_station_monitoring_prompt(station_monitorings: list) -> str:
+        return f"""
+        Anda adalah Habibie AI untuk monitoring kualitas madu, mikroklimat lahan, dan vitalitas koloni lebah.
+
+        Tugas:
+        - Buat analisis singkat untuk 3 kartu station monitoring berdasarkan data JSON berikut.
+        - Tulis dalam Bahasa Indonesia.
+        - Setiap value cukup 1 kalimat, maksimal 140 karakter.
+        - Hindari menyebut angka mentah jika tidak menambah insight.
+        - Gunakan nada profesional, ringkas, dan meyakinkan.
+
+        ATURAN KETAT:
+        - Output HARUS berupa JSON valid.
+        - TANPA markdown.
+        - TANPA penjelasan tambahan.
+        - HANYA objek JSON dengan tepat 3 key berikut.
+
+        FORMAT:
+        {{
+            "purity_prediction": "string",
+            "land_temperature": "string",
+            "colony_vitality": "string"
+        }}
+
+        KONTEKS FIELD DATA:
+        - purity_prediction: main_value adalah prediksi kemurnian (%), first_value enzim diastase, second_value moisture content (%).
+        - land_temperature: main_value suhu lahan (°C), first_value kelembapan (%), second_value kualitas udara per 100.
+        - colony_vitality: main_value null, first_value frekuensi suara sarang (Hz), second_value aktivitas terbang (u/min).
+
+        DATA STATION MONITORING:
+        {json.dumps(station_monitorings, ensure_ascii=False)}
+        """
+
+    @staticmethod
+    def analyze_station_monitoring(station_monitorings: list) -> dict:
+        fallback = {
+            "purity_prediction": "Analisis kemurnian madu belum dapat dihasilkan saat ini.",
+            "land_temperature": "Analisis mikroklimat lahan belum dapat dihasilkan saat ini.",
+            "colony_vitality": "Analisis vitalitas koloni belum dapat dihasilkan saat ini.",
+        }
+
+        try:
+            prompt = AiService.build_station_monitoring_prompt(station_monitorings)
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json"),
+            )
+            text = response.text
+        except Exception:
+            return fallback
+
+        parsed = AiService._parse_json_object(text)
+        if not isinstance(parsed, dict):
+            return fallback
+
+        for key in ("purity_prediction", "land_temperature", "colony_vitality"):
+            if key not in parsed or not isinstance(parsed[key], str) or not parsed[key].strip():
+                parsed[key] = fallback[key]
+            else:
+                parsed[key] = parsed[key].strip()
+
+        return {
+            "purity_prediction": parsed["purity_prediction"],
+            "land_temperature": parsed["land_temperature"],
+            "colony_vitality": parsed["colony_vitality"],
+        }

@@ -5,11 +5,6 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
-
-class CustomUser(AbstractUser):
-
-    def __str__(self):
-        return self.username
     
 class UserToken(models.Model):
     key = models.CharField(max_length=40, primary_key=True)
@@ -100,13 +95,75 @@ class LiveHarvest(models.Model):
     weather_temperature = models.FloatField(null=True, blank=True)
     weather_humidity = models.FloatField(null=True, blank=True)
     weather_wind_speed = models.FloatField(null=True, blank=True)
+    weather_uv = models.FloatField(null=True, blank=True)
+    weather_rain = models.FloatField(null=True, blank=True)
+    harvester_name = models.CharField(max_length=100, null=True, blank=True)
+    cameraman = models.CharField(max_length=100, null=True, blank=True)
+    water_prediction = models.FloatField(null=True, blank=True)
+    selfie_photo = models.URLField(max_length=1000, null=True, blank=True)
+    area_photo = models.URLField(max_length=1000, null=True, blank=True)
+    sky_photo = models.URLField(max_length=1000, null=True, blank=True)
+    water_prediction_photo = models.URLField(max_length=1000, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+class RawStock(models.Model):
+    live_harvest = models.ForeignKey(LiveHarvest, related_name='raw_stocks', on_delete=models.CASCADE, null=True, blank=True)
+    weight_kg = models.FloatField(null=True, blank=True)
+    remaining_kg = models.FloatField(null=True, blank=True)
+    status = models.CharField(max_length=20, default="AVAILABLE")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.live_harvest} - {self.weight_kg} kg"
+
+class Bottling(models.Model):
+    raw_stock = models.ForeignKey(RawStock, related_name='bottlings', on_delete=models.CASCADE, null=True, blank=True)
+    bottle_size_ml = models.IntegerField(null=True, blank=True)
+    quantity = models.IntegerField(null=True, blank=True)
+    used_kg = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.raw_stock} - {self.bottle_size_ml} ml"
+
+class Brand(models.Model):
+    name = models.CharField(max_length=100, null=True, blank=True)
+    logo = models.URLField(max_length=1000, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name}"
+
+class HoneyProduct(models.Model):
+    brand = models.ForeignKey(Brand, related_name="honey_products", on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=120, null=True, blank=True)
+    badge = models.CharField(max_length=80, null=True, blank=True)
+    bottle_size_ml = models.IntegerField(null=True, blank=True)
+    price = models.PositiveBigIntegerField(null=True, blank=True)
+    photo = models.URLField(max_length=1000, null=True, blank=True)
+    integrity_text = models.TextField(null=True, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("brand", "bottle_size_ml", "name")
+        ordering = ["display_order", "price", "id"]
+
+    def __str__(self):
+        return f"{self.brand} - {self.name} ({self.bottle_size_ml} ml)"
+
 class HoneyBatch(models.Model):
     live_harvest = models.ForeignKey(LiveHarvest, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    bottling = models.ForeignKey(Bottling, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    brand = models.ForeignKey(Brand, related_name='honey_batches', on_delete=models.CASCADE, null=True, blank=True)
+    honey_product = models.ForeignKey(HoneyProduct, related_name="honey_batches", on_delete=models.SET_NULL, null=True, blank=True)
     batch_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    brand = models.CharField(max_length=100, null=True, blank=True)
     quantity = models.IntegerField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
     status = models.CharField(max_length=20, null=True, blank=True)
@@ -118,8 +175,10 @@ class HoneyBatch(models.Model):
     
 class HoneyBottle(models.Model):
     honey_batch = models.ForeignKey(HoneyBatch, related_name='honey_bottles', on_delete=models.CASCADE)
-    qr_code = models.ImageField(upload_to='images/', null=True, blank=True)
+    qr_code = models.URLField(max_length=500, null=True, blank=True)
     serial_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -161,10 +220,165 @@ class WeatherObservation(models.Model):
         return f"Weather at {self.observed_at} - Temp: {self.temperature}°C"
     
 class Setting(models.Model):
-    key = models.CharField(max_length=255,unique=True, null=True, blank=True)
+    key = models.CharField(max_length=255, unique=True, null=True, blank=True)
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.key}"
+    
+class Role(models.Model):
+    name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    id_role = models.IntegerField(unique=True, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name}"
+    
+class CustomUser(AbstractUser):
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.username
+
+class Inventory(models.Model):
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name="inventories", null=True, blank=True)
+    bottle_size_ml = models.IntegerField(null=True, blank=True)
+    stock = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.brand} - {self.bottle_size_ml} ml"
+
+class School(models.Model):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return self.name
+
+class Teacher(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="teachers", null=True, blank=True)
+    mentor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="managed_teachers")
+    school = models.ManyToManyField(School, through="TeacherSchool", related_name="teachers")
+    customer_count = models.PositiveIntegerField(default=0)
+    omzet = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        if self.user_id:
+            return f"{self.user.username} profile"
+        return "Teacher profile"
+
+
+class UserDocument(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="documents", null=True, blank=True)
+    url = models.URLField(max_length=1000, null=True, blank=True)
+    type = models.CharField(max_length=50, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user_id} - {self.type}"
+
+class MentorPersonalOrder(models.Model):
+    class BuyerType(models.TextChoices):
+        PEOPLE = "people", "people"
+        SCHOOL = "school", "school"
+
+    mentor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mentor_personal_orders", null=True, blank=True)
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name="mentor_personal_orders")
+    product_name = models.CharField(max_length=255, null=True, blank=True)
+    weight = models.PositiveIntegerField(help_text="Berat/kemasan produk (mis. gram atau ml sesuai varian)",)
+    quantity = models.PositiveIntegerField(default=1, null=True, blank=True)
+    unit_price = models.BigIntegerField(null=True, blank=True)
+    line_total = models.BigIntegerField(null=True, blank=True)
+    buyer_type = models.CharField(max_length=20, choices=BuyerType.choices, null=True, blank=True)
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name="mentor_personal_orders")
+    buyer_name = models.CharField(max_length=255, blank=True, null=True)
+    buyer_reference = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class DistributionMission(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="distribution_missions", null=True, blank=True)
+    year = models.PositiveIntegerField()
+    target_quantity = models.PositiveBigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "year")
+        indexes = [
+            models.Index(fields=["user", "year"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.year}: {self.target_quantity}"
+
+class TeacherSchool(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="teacher_schools")
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="teacher_schools")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        unique_together = ("teacher", "school")
+
+class CustomerAddress(models.Model):
+    class Source(models.TextChoices):
+        MANUAL = "manual", "manual"
+        AI = "ai", "ai"
+
+    name = models.CharField(max_length=255, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
+    confidence = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["source"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} - {self.address[:50]}"
+
+class Size(models.Model):
+    ml = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["ml"]
+
+    def __str__(self):
+        return f"{self.ml} ml)"
+
+class General(models.Model):
+    route = models.CharField(max_length=255, null=True, blank=True)
+    category = models.CharField(max_length=255, null=True, blank=True)
+    type = models.CharField(max_length=255, null=True, blank=True)
+    url = models.URLField(max_length=1000, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["route"]),
+            models.Index(fields=["type"]),
+        ]
+        ordering = ["route"]
+
+    def __str__(self):
+        return f"{self.route}"
